@@ -1,0 +1,2 @@
+aiopg
+discord.py
