@@ -1,22 +1,46 @@
 from typing import Optional
-from collections import namedtuple
 
 
-class GuildSettings(namedtuple("GuildSettings", [
-    "guild_id", "prefix", "announcement_channel", "boost_channel", "boost_role", "audit_channel", "enable_stickers",
-    "enable_nitro", "enable_replies", "enable_masked_links", "is_alias_server"
-])):
-    index = "guild_settings"
+class GuildSettings:
+    __slots__ = [
+        "guild_id",
+        "prefix",
+        "announcement_channel",
+        "boost_channel",
+        "boost_role",
+        "audit_channel",
+        "enable_stickers",
+        "enable_nitro",
+        "enable_replies",
+        "enable_masked_links",
+        "is_alias_server"
+    ]
+    
+    def __init__(
+            self,
+            guild_id,
+            prefix,
+            announcement_channel,
+            boost_channel,
+            boost_role,
+            audit_channel,
+            enable_stickers,
+            enable_nitro,
+            enable_replies,
+            enable_masked_links,
+            is_alias_server
+    ):
+        self.guild_id = guild_id
+        self.prefix = prefix
+        self.announcement_channel = announcement_channel
+        self.boost_channel = boost_channel
+        self.boost_role = boost_role
+        self.audit_channel = audit_channel
+        self.enable_stickers = self._parse_boolean(enable_stickers)
+        self.enable_nitro = self._parse_boolean(enable_nitro)
+        self.enable_replies = self._parse_boolean(enable_replies)
+        self.enable_masked_links = self._parse_boolean(enable_masked_links)
+        self.is_alias_server = self._parse_boolean(is_alias_server)
 
-    prefix: str
-    announcement_channel: Optional[int]
-    boost_channel: Optional[int]
-    boost_role: Optional[int]
-    audit_channel: Optional[int]
-
-    enable_stickers: Optional[bool]
-    enable_nitro: Optional[bool]
-    enable_replies: Optional[bool]
-    enable_masked_links: Optional[bool]
-
-    is_alias_server: Optional[bool]
+    def _parse_boolean(self, bool: Optional[bool], on_none: Optional[bool] = True):
+        return on_none if bool is None else bool
