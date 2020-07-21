@@ -132,7 +132,8 @@ class PostgresConnection:
             )
             for webhook in webhooks:
                 await self.cur.execute(
-                    "INSERT INTO webhooks VALUES (%(webhook_id)s, %(guild_id)s, %(channel_id)s, %(token)s, %(name)s)",
+                    "INSERT INTO webhooks VALUES (%(webhook_id)s, %(guild_id)s, %(channel_id)s, %(token)s, %(name)s) "
+                    "ON CONFLICT (webhook_id) DO UPDATE SET channel_id=excluded.channel_id, name=excluded.name",
                     parameters={
                         "webhook_id": webhook.id,
                         "guild_id": webhook.guild_id,
