@@ -40,7 +40,7 @@ class GuildSettings:
         self.enable_nitro = self._parse_boolean(enable_nitro)
         self.enable_replies = self._parse_boolean(enable_replies)
         self.enable_masked_links = self._parse_boolean(enable_masked_links)
-        self.is_alias_server = self._parse_boolean(is_alias_server)
+        self.is_alias_server = self._parse_boolean(is_alias_server, on_none=False)
 
     def _parse_boolean(self, bool: Optional[bool], on_none: Optional[bool] = True):
         return on_none if bool is None else bool
