@@ -104,7 +104,7 @@ class PostgresConnection:
         await self.cur.execute(
             "INSERT INTO guild_settings VALUES "
             "(%(guild_id)s, %(prefix)s, %(announcement_channel)s, %(boost_channel)s, %(boost_role)s, %(audit_channel)s, %(enable_stickers)s, %(enable_nitro)s, %(enable_replies)s, %(enable_masked_links)s, %(is_alias_server)s, %(locale)s)"
-            "ON CONFLICT (guild_id) DO UPDATE SET (prefix, announcement_channel, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale) = "
+            'ON CONFLICT (guild_id) DO UPDATE SET (prefix, announcement_channel, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, "locale") = '
             "(EXCLUDED.prefix, EXCLUDED.announcement_channel, EXCLUDED.boost_channel, EXCLUDED.boost_role, EXCLUDED.audit_channel, EXCLUDED.enable_stickers, EXCLUDED.enable_nitro, EXCLUDED.enable_replies, EXCLUDED.enable_masked_links, EXCLUDED.is_alias_server, EXCLUDED.locale)",
             parameters={slot: getattr(guild, slot) for slot in guild.__slots__}
         )
