@@ -13,7 +13,8 @@ class GuildSettings:
         "enable_nitro",
         "enable_replies",
         "enable_masked_links",
-        "is_alias_server"
+        "is_alias_server",
+        "locale"
     ]
     
     def __init__(
@@ -28,7 +29,8 @@ class GuildSettings:
             enable_nitro,
             enable_replies,
             enable_masked_links,
-            is_alias_server
+            is_alias_server,
+            locale
     ):
         self.guild_id = guild_id
         self.prefix = prefix
@@ -41,6 +43,7 @@ class GuildSettings:
         self.enable_replies = self._parse_boolean(enable_replies)
         self.enable_masked_links = self._parse_boolean(enable_masked_links)
         self.is_alias_server = self._parse_boolean(is_alias_server, on_none=False)
+        self.locale = locale
 
     def _parse_boolean(self, bool: Optional[bool], on_none: Optional[bool] = True):
         return on_none if bool is None else bool
