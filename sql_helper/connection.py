@@ -143,6 +143,61 @@ class PostgresConnection:
                     }
                 )
 
+    @async_list
+    async def user_pack_ids(self, user_id: Union[User, int]) -> AsyncList:
+        if not isinstance(user_id, int):
+            user_id = user_id.id
+        await self.cur.execute(
+            "SELECT guild_id FROM user_packs WHERE user_id=%(user_id)s",
+            parameters={"user_id": user_id}
+        )
+        guilds = await self.cur.fetchall()
+        return [g for g, in guilds]
+
+    @async_list
+    async def pack_member_ids(self, guild_id: Union[Guild, int]) -> AsyncList:
+        if not isinstance(guild_id, int):
+            guild_id = guild_id.id
+        await self.cur.execute(
+            "SELECT user_id FROM user_packs WHERE guild_id=%(guild_id)s",
+            parameters={"guild_id": guild_id}
+        )
+        users = await self.cur.fetchall()
+        return [g for g, in users]
+
+    async def in_pack(self, *, user_id: int, guild_id: int) -> bool:
+        await self.cur.execute(
+            "SELECT 1 FROM user_packs WHERE user_id=%(user_id)s AND guild_id=%(guild_id)s",
+            parameters={"user_id": user_id, "guild_id": guild_id}
+        )
+        return bool(await self.cur.fetchall())
+
+    async def pack_size(self, guild_id: int) -> int:
+        await self.cur.execute(
+            "SELECT COUNT(*) FROM user_packs WHERE guild_id=%(guild_id)s",
+            parameters={"guild_id": guild_id}
+        )
+        users = await self.cur.fetchall()
+        return users[0][0]
+
+    async def delete_pack(self, guild_id: int):
+        await self.cur.execute(
+            "DELETE FROM user_packs WHERE guild_id=%(guild_id)s",
+            parameters={"guild_id": guild_id}
+        )
+
+    async def join_pack(self, *, user_id: int, guild_id: int):
+        await self.cur.execute(
+            "INSERT INTO user_packs VALUES (%(user_id)s, %(guild_id)s)",
+            parameters={"guild_id": guild_id, "user_id": user_id}
+        )
+
+    async def leave_pack(self, *, user_id: int, guild_id: int):
+        await self.cur.execute(
+            "DELETE FROM user_packs WHERE guild_id=%(guild_id)s AND user_id=%(user_id)s",
+            parameters={"guild_id": guild_id, "user_id": user_id}
+        )
+
     async def __aenter__(self):
         self.pool_acq = self.pool.acquire()
         self.conn = await self.pool_acq.__aenter__()
