@@ -24,13 +24,14 @@ def async_list(f):
 
 
 class PostgresConnection:
-    def __init__(self, pool, bot: Optional[Bot]):
+    def __init__(self, pool, bot: Optional[Bot], profiler=None):
         self.pool = pool
         self.pool_acq = None
         self.conn = None
         self.cur_acq = None
         self.cur = None
         self.bot = bot
+        self.profiler = profiler
 
     @async_list
     async def mutual_guild_ids(self, user_id: Union[User, int]) -> AsyncList:
@@ -252,6 +253,8 @@ class PostgresConnection:
         self.conn = await self.pool_acq.__aenter__()
         self.cur_acq = self.conn.cursor()
         self.cur = await self.cur_acq.__aenter__()
+        if self.profiler is not None:
+            self.cur.execute = self.profiler(self.cur.execute)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -265,9 +268,10 @@ class PostgresConnection:
 
 
 class SQLConnection:
-    def __init__(self, pool, bot: Optional[Bot] = None):
+    def __init__(self, pool, bot: Optional[Bot] = None, profiler = None):
         self.pool = pool
         self.bot = bot
+        self.profiler = profiler
 
     def __call__(self) -> PostgresConnection:
-        return PostgresConnection(self.pool, self.bot)
+        return PostgresConnection(self.pool, self.bot, self.profiler)
