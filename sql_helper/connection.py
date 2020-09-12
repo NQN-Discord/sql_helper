@@ -4,6 +4,7 @@ from discord import Webhook as DiscordWebhook
 from discord.ext.commands import Bot
 from .guild_settings import GuildSettings
 from .webhook import Webhook
+from .pack import Pack
 
 
 class AsyncList:
@@ -155,6 +156,17 @@ class PostgresConnection:
         return [g for g, in guilds]
 
     @async_list
+    async def user_packs(self, user_id: Union[User, int]) -> AsyncList:
+        if not isinstance(user_id, int):
+            user_id = user_id.id
+        await self.cur.execute(
+            "SELECT packs.* FROM user_packs JOIN packs on packs.guild_id=user_packs.guild_id where user_id=%(user_id)s",
+            parameters={"user_id": user_id}
+        )
+        packs = await self.cur.fetchall()
+        return [Pack(*p) for p in packs]
+
+    @async_list
     async def pack_member_ids(self, guild_id: Union[Guild, int]) -> AsyncList:
         if not isinstance(guild_id, int):
             guild_id = guild_id.id
@@ -185,6 +197,43 @@ class PostgresConnection:
             "DELETE FROM user_packs WHERE guild_id=%(guild_id)s",
             parameters={"guild_id": guild_id}
         )
+        await self.cur.execute(
+            "DELETE FROM packs WHERE guild_id=%(guild_id)s",
+            parameters={"guild_id": guild_id}
+        )
+
+    async def create_update_pack(self, guild_id: int, name: str, public: bool):
+        await self.cur.execute(
+            "INSERT INTO packs VALUES (%(guild_id)s, %(pack_name)s, %(is_public)s) "
+            "ON CONFLICT (guild_id) DO UPDATE SET pack_name=excluded.pack_name, is_public=excluded.is_public",
+            parameters={
+                "guild_id": guild_id,
+                "pack_name": name,
+                "is_public": public,
+            }
+        )
+
+    async def get_pack_guild(self, guild_id: int) -> Optional[Pack]:
+        await self.cur.execute(
+            "SELECT * FROM packs WHERE guild_id=%(guild_id)s",
+            parameters={"guild_id": guild_id}
+        )
+        results = await self.cur.fetchall()
+        if results:
+            return Pack(*results[0])
+        else:
+            return
+
+    async def get_pack_name(self, name: int) -> Optional[Pack]:
+        await self.cur.execute(
+            "SELECT * FROM packs WHERE pack_name=%(name)s",
+            parameters={"name": name}
+        )
+        results = await self.cur.fetchall()
+        if results:
+            return Pack(*results[0])
+        else:
+            return
 
     async def join_pack(self, *, user_id: int, guild_id: int):
         await self.cur.execute(

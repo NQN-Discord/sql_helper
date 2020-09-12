@@ -1,7 +1,7 @@
 from collections import namedtuple
 
 
-class Webhook(namedtuple("GuildSettings", [
+class Webhook(namedtuple("Webhook", [
     "webhook_id", "guild_id", "channel_id", "token", "name"
 ])):
     index = "webhook"
