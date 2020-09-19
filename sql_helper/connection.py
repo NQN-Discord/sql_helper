@@ -146,6 +146,12 @@ class PostgresConnection:
                 )
 
     @async_list
+    async def pack_ids(self):
+        await self.cur.execute("SELECT guild_id from packs")
+        guilds = await self.cur.fetchall()
+        return [g for g, in guilds]
+
+    @async_list
     async def user_pack_ids(self, user_id: Union[User, int]) -> AsyncList:
         if not isinstance(user_id, int):
             user_id = user_id.id
