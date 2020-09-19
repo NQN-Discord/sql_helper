@@ -206,7 +206,7 @@ class PostgresConnection:
     async def create_update_pack(self, guild_id: int, name: str, public: bool):
         await self.cur.execute(
             "INSERT INTO packs VALUES (%(guild_id)s, %(pack_name)s, %(is_public)s) "
-            "ON CONFLICT (guild_id, pack_name) DO UPDATE SET pack_name=excluded.pack_name, is_public=excluded.is_public",
+            "ON CONFLICT (guild_id) DO UPDATE SET pack_name=excluded.pack_name, is_public=excluded.is_public",
             parameters={
                 "guild_id": guild_id,
                 "pack_name": name,
