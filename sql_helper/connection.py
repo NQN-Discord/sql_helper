@@ -5,6 +5,7 @@ from discord.ext.commands import Bot
 from .guild_settings import GuildSettings
 from .webhook import Webhook
 from .pack import Pack
+from .guild_feature import GuildFeature
 
 
 class AsyncList:
@@ -70,14 +71,14 @@ class PostgresConnection:
     @async_list
     async def guild_settings(self) -> AsyncList:
         await self.cur.execute(
-            "SELECT guild_id, prefix, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale FROM guild_settings"
+            "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale FROM guild_settings"
         )
         results = await self.cur.fetchall()
         return [GuildSettings(*i) for i in results]
 
     async def get_guild_settings(self, guild_id: Union[Guild, int]) -> Optional[GuildSettings]:
         await self.cur.execute(
-            "SELECT guild_id, prefix, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale FROM guild_settings WHERE guild_id=%(guild_id)s",
+            "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale FROM guild_settings WHERE guild_id=%(guild_id)s",
             parameters={"guild_id": guild_id}
         )
         results = await self.cur.fetchall()
@@ -104,10 +105,10 @@ class PostgresConnection:
 
     async def set_guild_settings(self, guild: GuildSettings):
         await self.cur.execute(
-            "INSERT INTO guild_settings (guild_id, prefix, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale)  VALUES "
-            "(%(guild_id)s, %(prefix)s, %(boost_channel)s, %(boost_role)s, %(audit_channel)s, %(enable_stickers)s, %(enable_nitro)s, %(enable_replies)s, %(enable_masked_links)s, %(is_alias_server)s, %(locale)s)"
-            'ON CONFLICT (guild_id) DO UPDATE SET (prefix, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, "locale") = '
-            "(EXCLUDED.prefix, EXCLUDED.boost_channel, EXCLUDED.boost_role, EXCLUDED.audit_channel, EXCLUDED.enable_stickers, EXCLUDED.enable_nitro, EXCLUDED.enable_replies, EXCLUDED.enable_masked_links, EXCLUDED.is_alias_server, EXCLUDED.locale)",
+            "INSERT INTO guild_settings (guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale)  VALUES "
+            "(%(guild_id)s, %(prefix)s, %(nitro_role)s, %(boost_channel)s, %(boost_role)s, %(audit_channel)s, %(enable_stickers)s, %(enable_nitro)s, %(enable_replies)s, %(enable_masked_links)s, %(is_alias_server)s, %(locale)s)"
+            'ON CONFLICT (guild_id) DO UPDATE SET (prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, "locale") = '
+            "(EXCLUDED.prefix, EXCLUDED.nitro_role, EXCLUDED.boost_channel, EXCLUDED.boost_role, EXCLUDED.audit_channel, EXCLUDED.enable_stickers, EXCLUDED.enable_nitro, EXCLUDED.enable_replies, EXCLUDED.enable_masked_links, EXCLUDED.is_alias_server, EXCLUDED.locale)",
             parameters={slot: getattr(guild, slot) for slot in guild.__slots__}
         )
 
@@ -231,7 +232,7 @@ class PostgresConnection:
         else:
             return
 
-    async def get_pack_name(self, name: int) -> Optional[Pack]:
+    async def get_pack_name(self, name: str) -> Optional[Pack]:
         await self.cur.execute(
             "SELECT * FROM packs WHERE pack_name=%(name)s",
             parameters={"name": name}
@@ -252,6 +253,26 @@ class PostgresConnection:
         await self.cur.execute(
             "DELETE FROM user_packs WHERE guild_id=%(guild_id)s AND user_id=%(user_id)s",
             parameters={"guild_id": guild_id, "user_id": user_id}
+        )
+
+    @async_list
+    async def guild_features(self, *, guild_id: int) -> List[GuildFeature]:
+        await self.cur.execute(
+            "SELECT feature FROM guild_features WHERE guild_id=%(guild_id)s",
+            parameters={"guild_id": guild_id}
+        )
+        return [GuildFeature(feature) for feature, in await self.cur.fetchall()]
+
+    async def add_guild_feature(self, *, guild_id: int, feature: GuildFeature):
+        await self.cur.execute(
+            "INSERT INTO guild_features VALUES(%(guild_id)s, %(feature)s)",
+            parameters={"guild_id": guild_id, "feature": feature.value}
+        )
+
+    async def remove_guild_feature(self, *, guild_id: int, feature: GuildFeature):
+        await self.cur.execute(
+            "DELETE FROM guild_features WHERE guild_id=%(guild_id)s AND feature=%(feature)s",
+            parameters={"guild_id": guild_id, "feature": feature.value}
         )
 
     async def __aenter__(self):

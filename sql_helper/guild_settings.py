@@ -5,6 +5,7 @@ class GuildSettings:
     __slots__ = [
         "guild_id",
         "prefix",
+        "nitro_role",
         "boost_channel",
         "boost_role",
         "audit_channel",
@@ -20,6 +21,7 @@ class GuildSettings:
             self,
             guild_id,
             prefix,
+            nitro_role,
             boost_channel,
             boost_role,
             audit_channel,
@@ -32,6 +34,7 @@ class GuildSettings:
     ):
         self.guild_id = guild_id
         self.prefix = prefix
+        self.nitro_role = nitro_role
         self.boost_channel = boost_channel
         self.boost_role = boost_role
         self.audit_channel = audit_channel
