@@ -72,7 +72,7 @@ class PostgresConnection:
     @async_list
     async def guild_settings(self) -> AsyncList:
         await self.cur.execute(
-            "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale FROM guild_settings"
+            "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale, enable_pings FROM guild_settings"
         )
         results = await self.cur.fetchall()
         return [GuildSettings(*i) for i in results]
