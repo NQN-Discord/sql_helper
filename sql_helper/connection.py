@@ -6,6 +6,7 @@ from .guild_settings import GuildSettings
 from .webhook import Webhook
 from .pack import Pack
 from .guild_feature import GuildFeature
+from .premium_user import PremiumUser
 
 
 class AsyncList:
@@ -78,7 +79,7 @@ class PostgresConnection:
 
     async def get_guild_settings(self, guild_id: Union[Guild, int]) -> Optional[GuildSettings]:
         await self.cur.execute(
-            "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale FROM guild_settings WHERE guild_id=%(guild_id)s",
+            "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale, enable_pings FROM guild_settings WHERE guild_id=%(guild_id)s",
             parameters={"guild_id": guild_id}
         )
         results = await self.cur.fetchall()
@@ -105,10 +106,10 @@ class PostgresConnection:
 
     async def set_guild_settings(self, guild: GuildSettings):
         await self.cur.execute(
-            "INSERT INTO guild_settings (guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale)  VALUES "
-            "(%(guild_id)s, %(prefix)s, %(nitro_role)s, %(boost_channel)s, %(boost_role)s, %(audit_channel)s, %(enable_stickers)s, %(enable_nitro)s, %(enable_replies)s, %(enable_masked_links)s, %(is_alias_server)s, %(locale)s)"
-            'ON CONFLICT (guild_id) DO UPDATE SET (prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, "locale") = '
-            "(EXCLUDED.prefix, EXCLUDED.nitro_role, EXCLUDED.boost_channel, EXCLUDED.boost_role, EXCLUDED.audit_channel, EXCLUDED.enable_stickers, EXCLUDED.enable_nitro, EXCLUDED.enable_replies, EXCLUDED.enable_masked_links, EXCLUDED.is_alias_server, EXCLUDED.locale)",
+            "INSERT INTO guild_settings (guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale, enable_pings)  VALUES "
+            "(%(guild_id)s, %(prefix)s, %(nitro_role)s, %(boost_channel)s, %(boost_role)s, %(audit_channel)s, %(enable_stickers)s, %(enable_nitro)s, %(enable_replies)s, %(enable_masked_links)s, %(is_alias_server)s, %(locale)s, %(enable_pings)s)"
+            'ON CONFLICT (guild_id) DO UPDATE SET (prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, "locale", enable_pings) = '
+            "(EXCLUDED.prefix, EXCLUDED.nitro_role, EXCLUDED.boost_channel, EXCLUDED.boost_role, EXCLUDED.audit_channel, EXCLUDED.enable_stickers, EXCLUDED.enable_nitro, EXCLUDED.enable_replies, EXCLUDED.enable_masked_links, EXCLUDED.is_alias_server, EXCLUDED.locale, EXCLUDED.enable_pings)",
             parameters={slot: getattr(guild, slot) for slot in guild.__slots__}
         )
 
@@ -275,6 +276,44 @@ class PostgresConnection:
             parameters={"guild_id": guild_id, "feature": feature.value}
         )
 
+    async def set_premium_user(self, user: PremiumUser):
+        await self.cur.execute(
+            "INSERT INTO premium_users (patreon_id, discord_id, lifetime_support_cents, last_charge_date, last_charge_status, tokens, tokens_spent) VALUES "
+            "(%(patreon_id)s, %(discord_id)s, %(lifetime_support_cents)s, %(last_charge_date)s, %(last_charge_status)s, %(tokens)s, %(tokens_spent)s)"
+            'ON CONFLICT (patreon_id) DO UPDATE SET (discord_id, lifetime_support_cents, last_charge_date, last_charge_status, tokens, tokens_spent) = '
+            "(EXCLUDED.discord_id, EXCLUDED.lifetime_support_cents, EXCLUDED.last_charge_date, EXCLUDED.last_charge_status, EXCLUDED.tokens, EXCLUDED.tokens_spent)",
+            parameters={
+                "patreon_id": user.patreon_id,
+                "discord_id": user.discord_id,
+                "lifetime_support_cents": user.lifetime_support_cents,
+                "last_charge_date": user.last_charge_date,
+                "last_charge_status": user.last_charge_status,
+                "tokens": user.tokens,
+                "tokens_spent": user.tokens_spent
+            }
+        )
+
+    async def get_premium_user_patreon(self, patreon_id: str) -> Optional[PremiumUser]:
+        await self.cur.execute(
+            "SELECT * FROM premium_users WHERE patreon_id=%(patreon_id)s",
+            parameters={"patreon_id": patreon_id}
+        )
+        results = await self.cur.fetchall()
+        if not results:
+            return None
+        return PremiumUser(*results[0])
+
+    async def get_premium_user_discord(self, discord_id: str) -> Optional[PremiumUser]:
+        await self.cur.execute(
+            "SELECT * FROM premium_users WHERE discord_id=%(discord_id)s",
+            parameters={"discord_id": discord_id}
+        )
+
+        results = await self.cur.fetchall()
+        if not results:
+            return None
+        return PremiumUser(*results[0])
+
     async def __aenter__(self):
         self.pool_acq = self.pool.acquire()
         self.conn = await self.pool_acq.__aenter__()
@@ -295,7 +334,7 @@ class PostgresConnection:
 
 
 class SQLConnection:
-    def __init__(self, pool, bot: Optional[Bot] = None, profiler = None):
+    def __init__(self, pool, bot: Optional[Bot] = None, profiler=None):
         self.pool = pool
         self.bot = bot
         self.profiler = profiler
