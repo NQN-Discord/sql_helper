@@ -331,7 +331,7 @@ class PostgresConnection:
 
     async def set_emote_perceptual_data(self, emote_id: int, emote_hash: str, animated: bool):
         await self.cur.execute(
-            "INSERT INTO emote_ids VALUES (%(emote_id)s, %(emote_hash)s, true, %(animated)s)",
+            "INSERT INTO emote_ids VALUES (%(emote_id)s, %(emote_hash)s, true, %(animated)s) ON CONFLICT DO NOTHING",
             parameters={"emote_id": emote_id, "emote_hash": emote_hash, "animated": animated}
         )
 
