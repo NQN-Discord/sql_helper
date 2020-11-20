@@ -314,6 +314,33 @@ class PostgresConnection:
             return None
         return PremiumUser(*results[0])
 
+    async def get_synonyms_for_emote(self, emote_hash: str, limit: Optional[int] = 10) -> List[int]:
+        if limit is None:
+            await self.cur.execute(
+                "SELECT * FROM emote_ids WHERE emote_hash=%(emote_hash)s and usable=true",
+                parameters={"emote_hash": emote_hash}
+            )
+        else:
+            await self.cur.execute(
+                "SELECT emote_id FROM emote_ids WHERE emote_hash=%(emote_hash)s and usable=true LIMIT %(limit)s",
+                parameters={"emote_hash": emote_hash, "limit": limit}
+            )
+
+        results = await self.cur.fetchall()
+        return [emote_id for emote_id, in results]
+
+    async def set_emote_perceptual_data(self, emote_id: int, emote_hash: str, animated: bool):
+        await self.cur.execute(
+            "INSERT INTO emote_ids VALUES (%(emote_id)s, %(emote_hash)s, true, %(animated)s)",
+            parameters={"emote_id": emote_id, "emote_hash": emote_hash, "animated": animated}
+        )
+
+    async def set_emote_unavailable(self, emote_id: int):
+        await self.cur.execute(
+            "UPDATE emote_ids SET usable=false where emote_id=%(emote_id)s",
+            parameters={"emote_id": emote_id}
+        )
+
     async def __aenter__(self):
         self.pool_acq = self.pool.acquire()
         self.conn = await self.pool_acq.__aenter__()
