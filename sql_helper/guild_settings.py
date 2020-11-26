@@ -15,7 +15,8 @@ class GuildSettings:
         "enable_masked_links",
         "is_alias_server",
         "locale",
-        "enable_pings"
+        "enable_pings",
+        "max_guildwide_emotes"
     ]
     
     def __init__(
@@ -32,7 +33,8 @@ class GuildSettings:
             enable_masked_links,
             is_alias_server,
             locale,
-            enable_pings
+            enable_pings,
+            max_guildwide_emotes
     ):
         self.guild_id = guild_id
         self.prefix = prefix
@@ -47,6 +49,7 @@ class GuildSettings:
         self.enable_pings = self._parse_boolean(enable_pings)
         self.is_alias_server = self._parse_boolean(is_alias_server, on_none=False)
         self.locale = locale
+        self.max_guildwide_emotes = max_guildwide_emotes
 
     def _parse_boolean(self, bool: Optional[bool], on_none: Optional[bool] = True):
         return on_none if bool is None else bool
