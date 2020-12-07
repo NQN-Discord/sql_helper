@@ -2,7 +2,7 @@ import time
 from prometheus_client import Histogram
 
 
-async def sql_wrapper(namespace: str):
+def sql_wrapper(namespace: str):
     sql_request = Histogram(
         "sql_request_total",
         "SQL Requests",
