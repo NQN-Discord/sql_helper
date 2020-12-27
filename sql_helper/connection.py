@@ -1,5 +1,5 @@
-from typing import Union, Awaitable, Optional, List
-from discord import User, Guild
+from typing import Union, Awaitable, Optional, List, Tuple
+from discord import User, Guild, Object
 from discord import Webhook as DiscordWebhook
 from discord.ext.commands import Bot
 from .guild_settings import GuildSettings
@@ -87,6 +87,20 @@ class PostgresConnection:
             return None
         return GuildSettings(*results[0])
 
+    async def get_guild_rank(self, max_emotes: int) -> int:
+        await self.cur.execute(
+            "SELECT count(*) FROM guild_settings WHERE max_guildwide_emotes > %(max_emotes)s",
+            parameters={"max_emotes": max_emotes}
+        )
+        results = await self.cur.fetchall()
+        return results[0][0]
+
+    async def get_top_10_rank(self) -> List[Tuple[int, int]]:
+        await self.cur.execute(
+            "SELECT guild_id, max_guildwide_emotes FROM guild_settings ORDER BY max_guildwide_emotes DESC LIMIT 10"
+        )
+        return await self.cur.fetchall()
+
     async def set_user_guilds(self, user_id: int, guild_ids: List[int]):
         async with self.cur.begin():
             await self.cur.execute(
@@ -163,6 +177,16 @@ class PostgresConnection:
         )
         guilds = await self.cur.fetchall()
         return [g for g, in guilds]
+
+    async def user_pack_count(self, user_id: Union[Object, int]) -> int:
+        if not isinstance(user_id, int):
+            user_id = user_id.id
+        await self.cur.execute(
+            "SELECT count(*) FROM user_packs WHERE user_id=%(user_id)s",
+            parameters={"user_id": user_id}
+        )
+        results = await self.cur.fetchall()
+        return results[0][0]
 
     @async_list
     async def user_packs(self, user_id: Union[User, int]) -> AsyncList:
