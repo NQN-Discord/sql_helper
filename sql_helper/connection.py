@@ -7,6 +7,7 @@ from .webhook import Webhook
 from .pack import Pack
 from .guild_feature import GuildFeature
 from .premium_user import PremiumUser
+from .sticker import Sticker
 
 
 class AsyncList:
@@ -364,6 +365,22 @@ class PostgresConnection:
             "UPDATE emote_ids SET usable=false where emote_id=%(emote_id)s",
             parameters={"emote_id": emote_id}
         )
+
+    async def create_sticker(self, prefix: str, suffix: str, owner_id: int, url: str):
+        await self.cur.execute(
+            "INSERT INTO stickers (prefix, suffix, owner_id, url) VALUES (%(prefix)s, %(suffix)s, %(owner_id)s, %(url)s)",
+            parameters={"prefix": prefix, "suffix": suffix, "owner_id": owner_id, "url": url}
+        )
+
+    async def get_sticker(self, prefix: str, suffix: str) -> Optional[Sticker]:
+        await self.cur.execute(
+            "SELECT owner_id, url FROM sticker WHERE prefix=%(prefix)s AND suffix=%(suffix)s",
+            parameters={"prefix": prefix, "suffix": suffix}
+        )
+        results = await self.cur.fetchall()
+        if not results:
+            return
+        return Sticker(prefix, suffix, *results[0])
 
     async def __aenter__(self):
         self.pool_acq = self.pool.acquire()
