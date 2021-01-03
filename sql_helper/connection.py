@@ -1,4 +1,4 @@
-from typing import Union, Awaitable, Optional, List, Tuple
+from typing import Union, Awaitable, Optional, List, Tuple, Dict, Any, Callable
 from discord import User, Guild, Object
 from discord import Webhook as DiscordWebhook
 from discord.ext.commands import Bot
@@ -7,7 +7,6 @@ from .webhook import Webhook
 from .pack import Pack
 from .guild_feature import GuildFeature
 from .premium_user import PremiumUser
-from .sticker import Sticker
 
 
 class AsyncList:
@@ -27,13 +26,13 @@ def async_list(f):
 
 
 class PostgresConnection:
-    def __init__(self, pool, bot: Optional[Bot], profiler=None):
+    def __init__(self, pool, get_guild: Callable[[int], Optional[Guild]], profiler=None):
         self.pool = pool
         self.pool_acq = None
         self.conn = None
         self.cur_acq = None
         self.cur = None
-        self.bot = bot
+        self._get_guild = get_guild
         self.profiler = profiler
 
     @async_list
@@ -51,7 +50,7 @@ class PostgresConnection:
     async def mutual_guilds(self, user_id: Union[User, int]) -> AsyncList:
         mutuals = []
         async for guild_id in self.mutual_guild_ids(user_id):
-            guild = self.bot.get_guild(guild_id)
+            guild = self._get_guild(guild_id)
             if guild:
                 mutuals.append(guild)
         return mutuals
@@ -366,22 +365,6 @@ class PostgresConnection:
             parameters={"emote_id": emote_id}
         )
 
-    async def create_sticker(self, prefix: str, suffix: str, owner_id: int, url: str):
-        await self.cur.execute(
-            "INSERT INTO stickers (prefix, suffix, owner_id, url) VALUES (%(prefix)s, %(suffix)s, %(owner_id)s, %(url)s)",
-            parameters={"prefix": prefix, "suffix": suffix, "owner_id": owner_id, "url": url}
-        )
-
-    async def get_sticker(self, prefix: str, suffix: str) -> Optional[Sticker]:
-        await self.cur.execute(
-            "SELECT owner_id, url FROM sticker WHERE prefix=%(prefix)s AND suffix=%(suffix)s",
-            parameters={"prefix": prefix, "suffix": suffix}
-        )
-        results = await self.cur.fetchall()
-        if not results:
-            return
-        return Sticker(prefix, suffix, *results[0])
-
     async def __aenter__(self):
         self.pool_acq = self.pool.acquire()
         self.conn = await self.pool_acq.__aenter__()
@@ -402,10 +385,10 @@ class PostgresConnection:
 
 
 class SQLConnection:
-    def __init__(self, pool, bot: Optional[Bot] = None, profiler=None):
+    def __init__(self, pool, get_guild: Optional[Callable[[int], Optional[Guild]]] = None, profiler=None):
         self.pool = pool
-        self.bot = bot
+        self._get_guild = get_guild or (lambda id: None)
         self.profiler = profiler
 
     def __call__(self) -> PostgresConnection:
-        return PostgresConnection(self.pool, self.bot, self.profiler)
+        return PostgresConnection(self.pool, self._get_guild, self.profiler)
