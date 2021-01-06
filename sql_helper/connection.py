@@ -341,7 +341,7 @@ class PostgresConnection:
     async def get_synonyms_for_emote(self, emote_hash: str, limit: Optional[int] = 10) -> List[int]:
         if limit is None:
             await self.cur.execute(
-                "SELECT * FROM emote_ids WHERE emote_hash=%(emote_hash)s and usable=true",
+                "SELECT emote_id FROM emote_ids WHERE emote_hash=%(emote_hash)s and usable=true",
                 parameters={"emote_hash": emote_hash}
             )
         else:
@@ -353,10 +353,10 @@ class PostgresConnection:
         results = await self.cur.fetchall()
         return [emote_id for emote_id, in results]
 
-    async def set_emote_perceptual_data(self, emote_id: int, emote_hash: str, animated: bool):
+    async def set_emote_perceptual_data(self, emote_id: int, guild_id: int, emote_hash: str, emote_sha: str, animated: bool):
         await self.cur.execute(
-            "INSERT INTO emote_ids VALUES (%(emote_id)s, %(emote_hash)s, true, %(animated)s) ON CONFLICT DO NOTHING",
-            parameters={"emote_id": emote_id, "emote_hash": emote_hash, "animated": animated}
+            "INSERT INTO emote_ids (emote_id, emote_hash, usable, animated, emote_sha, guild_id) VALUES (%(emote_id)s, %(emote_hash)s, true, %(animated)s, %(emote_sha)s, %(guild_id)s) ON CONFLICT DO NOTHING",
+            parameters={"emote_id": emote_id, "emote_hash": emote_hash, "animated": animated, "emote_sha": emote_sha, "guild_id": guild_id}
         )
 
     async def set_emote_unavailable(self, emote_id: int):
