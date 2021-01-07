@@ -359,9 +359,29 @@ class PostgresConnection:
             parameters={"emote_id": emote_id, "emote_hash": emote_hash, "animated": animated, "emote_sha": emote_sha, "guild_id": guild_id}
         )
 
+    async def set_emote_guild(self, emote_id: int, guild_id: Optional[int]):
+        # Called when we leave a guild, or an emote is otherwise created
+        if guild_id is None:
+            # We don't know if the emote is available or not
+            await self.cur.execute(
+                "UPDATE emote_ids SET guild_id=null where emote_id=%(emote_id)s",
+                parameters={"emote_id": emote_id}
+            )
+        else:
+            await self.cur.execute(
+                "UPDATE emote_ids SET guild_id=%(guild_id)s, usable=true where emote_id=%(emote_id)s",
+                parameters={"emote_id": emote_id, "guild_id": guild_id}
+            )
+
+    async def clear_guild_emojis(self, guild_id: int):
+        await self.cur.execute(
+            "UPDATE emote_ids SET guild_id=null where guild_id=%(guild_id)s",
+            parameters={"guild_id": guild_id}
+        )
+
     async def set_emote_unavailable(self, emote_id: int):
         await self.cur.execute(
-            "UPDATE emote_ids SET usable=false where emote_id=%(emote_id)s",
+            "UPDATE emote_ids SET guild_id=null, usable=false where emote_id=%(emote_id)s",
             parameters={"emote_id": emote_id}
         )
 
