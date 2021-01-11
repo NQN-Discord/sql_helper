@@ -353,32 +353,39 @@ class PostgresConnection:
         results = await self.cur.fetchall()
         return [emote_id for emote_id, in results]
 
-    async def set_emote_perceptual_data(self, emote_id: int, guild_id: int, emote_hash: str, emote_sha: str, animated: bool, usable: bool):
+    async def set_emote_perceptual_data(self, emote_id: int, guild_id: int, emote_hash: str, emote_sha: str, animated: bool, usable: bool, name: Optional[str]):
         await self.cur.execute(
-            "INSERT INTO emote_ids (emote_id, emote_hash, usable, animated, emote_sha, guild_id) VALUES (%(emote_id)s, %(emote_hash)s, %(usable)s, %(animated)s, %(emote_sha)s, %(guild_id)s) ON CONFLICT DO NOTHING",
+            "INSERT INTO emote_ids (emote_id, emote_hash, usable, animated, emote_sha, guild_id, name) VALUES (%(emote_id)s, %(emote_hash)s, %(usable)s, %(animated)s, %(emote_sha)s, %(guild_id)s, %(name)s) ON CONFLICT DO NOTHING",
             parameters={
                 "emote_id": emote_id,
                 "emote_hash": emote_hash,
                 "animated": animated,
                 "emote_sha": emote_sha,
                 "guild_id": guild_id,
-                "usable": usable
+                "usable": usable,
+                "name": name
             }
         )
 
-    async def set_emote_guild(self, emote_id: int, guild_id: Optional[int], usable: Optional[bool]):
+    async def set_emote_guild(self, emote_id: int, guild_id: Optional[int], usable: Optional[bool], name: Optional[str]):
         # Called when we leave a guild, or an emote is otherwise created
         if usable is None:
             # We don't know if the emote is available or not
             await self.cur.execute(
-                "UPDATE emote_ids SET guild_id=%(guild_id)s where emote_id=%(emote_id)s",
-                parameters={"emote_id": emote_id, "guild_id": guild_id}
+                "UPDATE emote_ids SET guild_id=%(guild_id)s, name=%(name)s where emote_id=%(emote_id)s",
+                parameters={"emote_id": emote_id, "guild_id": guild_id, "name": name}
             )
         else:
             await self.cur.execute(
-                "UPDATE emote_ids SET guild_id=%(guild_id)s, usable=%(usable)s where emote_id=%(emote_id)s",
-                parameters={"emote_id": emote_id, "guild_id": guild_id, "usable": usable}
+                "UPDATE emote_ids SET guild_id=%(guild_id)s, usable=%(usable)s, name=%(name)s where emote_id=%(emote_id)s",
+                parameters={"emote_id": emote_id, "guild_id": guild_id, "usable": usable, "name": name}
             )
+
+    async def set_emote_usability(self, emote_id: int, usable: Optional[bool]):
+        await self.cur.execute(
+            "UPDATE emote_ids SET usable=%(usable)s where emote_id=%(emote_id)s",
+            parameters={"emote_id": emote_id, "usable": usable}
+        )
 
     async def clear_guild_emojis(self, guild_id: int):
         await self.cur.execute(
