@@ -356,7 +356,7 @@ class PostgresConnection:
 
     async def get_emote_like(self, emote_id: int) -> Optional[Emoji]:
         await self.cur.execute(
-            "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, name FROM emote_ids WHERE emote_id=%(emote_id)s LIMIT 1",
+            "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) FROM emote_ids WHERE emote_id=%(emote_id)s LIMIT 1",
             parameters={"emote_id": emote_id}
         )
         results = await self.cur.fetchall()
@@ -365,7 +365,7 @@ class PostgresConnection:
         emote = SQLEmoji(*results[0])
         if not (emote.guild_id and emote.usable):
             await self.cur.execute(
-                "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, name FROM emote_ids WHERE emote_hash=%(emote_hash)s and guild_id is not null and usable=true LIMIT 1",
+                "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) FROM emote_ids WHERE emote_hash=%(emote_hash)s and guild_id is not null and usable=true LIMIT 1",
                 parameters={"emote_hash": emote.emote_hash}
             )
             results = await self.cur.fetchall()
@@ -413,6 +413,17 @@ class PostgresConnection:
             "UPDATE emote_ids SET guild_id=null where guild_id=%(guild_id)s",
             parameters={"guild_id": guild_id}
         )
+
+    async def get_pack_emote(self, pack_name: str, emote_name: str) -> Optional[Emoji]:
+        await self.cur.execute(
+            "select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where guild_id=(select guild_id from packs where pack_name=%(pack_name)s) and trim(name)=%(emote_name)s",
+            parameters={"pack_name": pack_name, "emote_name": emote_name}
+        )
+        results = await self.cur.fetchall()
+        if not results:
+            return None
+        emote = SQLEmoji(*results[0])
+        return self._get_emoji(emote)
 
     async def __aenter__(self):
         self.pool_acq = self.pool.acquire()
