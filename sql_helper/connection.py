@@ -1,12 +1,12 @@
-from typing import Union, Awaitable, Optional, List, Tuple, Dict, Any, Callable
-from discord import User, Guild, Object
+from typing import Union, Awaitable, Optional, List, Tuple, Callable
+from discord import User, Guild, Object, Emoji
 from discord import Webhook as DiscordWebhook
-from discord.ext.commands import Bot
 from .guild_settings import GuildSettings
 from .webhook import Webhook
 from .pack import Pack
 from .guild_feature import GuildFeature
 from .premium_user import PremiumUser
+from .emoji import SQLEmoji
 
 
 class AsyncList:
@@ -26,13 +26,14 @@ def async_list(f):
 
 
 class PostgresConnection:
-    def __init__(self, pool, get_guild: Callable[[int], Optional[Guild]], profiler=None):
+    def __init__(self, pool, get_guild: Callable[[int], Optional[Guild]], get_emoji: Callable[[SQLEmoji], Optional[Emoji]], profiler=None):
         self.pool = pool
         self.pool_acq = None
         self.conn = None
         self.cur_acq = None
         self.cur = None
         self._get_guild = get_guild
+        self._get_emoji = get_emoji
         self.profiler = profiler
 
     @async_list
@@ -353,9 +354,29 @@ class PostgresConnection:
         results = await self.cur.fetchall()
         return [emote_id for emote_id, in results]
 
+    async def get_emote_like(self, emote_id: int) -> Optional[Emoji]:
+        await self.cur.execute(
+            "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, name FROM emote_ids WHERE emote_id=%(emote_id)s LIMIT 1",
+            parameters={"emote_id": emote_id}
+        )
+        results = await self.cur.fetchall()
+        if not results:
+            return None
+        emote = SQLEmoji(*results[0])
+        if not (emote.guild_id and emote.usable):
+            await self.cur.execute(
+                "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, name FROM emote_ids WHERE emote_hash=%(emote_hash)s and guild_id is not null and usable=true LIMIT 1",
+                parameters={"emote_hash": emote.emote_hash}
+            )
+            results = await self.cur.fetchall()
+            if not results:
+                return None
+            emote = SQLEmoji(*results[0])
+        return self._get_emoji(emote)
+
     async def set_emote_perceptual_data(self, emote_id: int, guild_id: int, emote_hash: str, emote_sha: str, animated: bool, usable: bool, name: Optional[str]):
         await self.cur.execute(
-            "INSERT INTO emote_ids (emote_id, emote_hash, usable, animated, emote_sha, guild_id, name) VALUES (%(emote_id)s, %(emote_hash)s, %(usable)s, %(animated)s, %(emote_sha)s, %(guild_id)s, %(name)s) ON CONFLICT DO NOTHING",
+            "INSERT INTO emote_ids (emote_id, emote_hash, usable, animated, emote_sha, guild_id, name) VALUES (%(emote_id)s, %(emote_hash)s, %(usable)s, %(animated)s, %(emote_sha)s, %(guild_id)s, %(name)s) ON CONFLICT (emote_id) DO UPDATE SET name=%(name)s",
             parameters={
                 "emote_id": emote_id,
                 "emote_hash": emote_hash,
@@ -413,10 +434,17 @@ class PostgresConnection:
 
 
 class SQLConnection:
-    def __init__(self, pool, get_guild: Optional[Callable[[int], Optional[Guild]]] = None, profiler=None):
+    def __init__(
+            self,
+            pool,
+            get_guild: Optional[Callable[[int], Optional[Guild]]] = None,
+            get_emoji: Optional[Callable[[SQLEmoji], Optional[Emoji]]] = None,
+            profiler=None
+    ):
         self.pool = pool
         self._get_guild = get_guild or (lambda id: None)
+        self._get_emoji = get_emoji or (lambda emoji: None)
         self.profiler = profiler
 
     def __call__(self) -> PostgresConnection:
-        return PostgresConnection(self.pool, self._get_guild, self.profiler)
+        return PostgresConnection(self.pool, self._get_guild, self._get_emoji, self.profiler)
