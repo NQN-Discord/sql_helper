@@ -442,6 +442,14 @@ class PostgresConnection:
             parameters={"user_id": user_id}
         )
 
+    async def get_mega_emotes(self, guild_id: int, emote_name: str) -> List[Emoji]:
+        await self.cur.execute(
+            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where guild_id=%(guild_id)s and trim(name) ~ ('^' || %(emote_name)s || '_\d_\d$') and usable=true",
+            parameters={"guild_id": guild_id, "emote_name": emote_name}
+        )
+        results = await self.cur.fetchall()
+        return [self._get_emoji(SQLEmoji(*emote)) for emote in results]
+
     async def _case_insensitive_get_emote(self, query_where, emote_name: str, parameters) -> Optional[Emoji]:
         await self.cur.execute(
             f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where {query_where} and lower(trim(name))=lower(%(emote_name)s) and usable=true",
