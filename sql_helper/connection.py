@@ -374,9 +374,9 @@ class PostgresConnection:
             emote = SQLEmoji(*results[0])
         return self._get_emoji(emote)
 
-    async def set_emote_perceptual_data(self, emote_id: int, guild_id: int, emote_hash: str, emote_sha: str, animated: bool, usable: bool, name: Optional[str]):
+    async def set_emote_perceptual_data(self, emote_id: int, guild_id: int, emote_hash: str, emote_sha: str, animated: bool, usable: bool, name: Optional[str], has_roles: bool):
         await self.cur.execute(
-            "INSERT INTO emote_ids (emote_id, emote_hash, usable, animated, emote_sha, guild_id, name) VALUES (%(emote_id)s, %(emote_hash)s, %(usable)s, %(animated)s, %(emote_sha)s, %(guild_id)s, %(name)s) ON CONFLICT (emote_id) DO UPDATE SET name=%(name)s",
+            "INSERT INTO emote_ids (emote_id, emote_hash, usable, animated, emote_sha, guild_id, name, has_roles) VALUES (%(emote_id)s, %(emote_hash)s, %(usable)s, %(animated)s, %(emote_sha)s, %(guild_id)s, %(name)s, %(has_roles)s) ON CONFLICT (emote_id) DO UPDATE SET name=%(name)s, has_roles=%(has_roles)s",
             parameters={
                 "emote_id": emote_id,
                 "emote_hash": emote_hash,
@@ -384,22 +384,23 @@ class PostgresConnection:
                 "emote_sha": emote_sha,
                 "guild_id": guild_id,
                 "usable": usable,
-                "name": name
+                "name": name,
+                "has_roles": has_roles,
             }
         )
 
-    async def set_emote_guild(self, emote_id: int, guild_id: Optional[int], usable: Optional[bool], name: Optional[str]):
+    async def set_emote_guild(self, emote_id: int, guild_id: Optional[int], usable: Optional[bool], has_roles: bool, name: Optional[str]):
         # Called when we leave a guild, or an emote is otherwise created
         if usable is None:
             # We don't know if the emote is available or not
             await self.cur.execute(
-                "UPDATE emote_ids SET guild_id=%(guild_id)s, name=%(name)s where emote_id=%(emote_id)s",
-                parameters={"emote_id": emote_id, "guild_id": guild_id, "name": name}
+                "UPDATE emote_ids SET guild_id=%(guild_id)s, name=%(name)s, has_roles=%(has_roles)s where emote_id=%(emote_id)s",
+                parameters={"emote_id": emote_id, "guild_id": guild_id, "name": name, "has_roles": has_roles}
             )
         else:
             await self.cur.execute(
-                "UPDATE emote_ids SET guild_id=%(guild_id)s, usable=%(usable)s, name=%(name)s where emote_id=%(emote_id)s",
-                parameters={"emote_id": emote_id, "guild_id": guild_id, "usable": usable, "name": name}
+                "UPDATE emote_ids SET guild_id=%(guild_id)s, usable=%(usable)s, name=%(name)s, has_roles=%(has_roles)s where emote_id=%(emote_id)s",
+                parameters={"emote_id": emote_id, "guild_id": guild_id, "usable": usable, "name": name, "has_roles": has_roles}
             )
 
     async def set_emote_usability(self, emote_id: int, usable: Optional[bool]):
@@ -444,7 +445,7 @@ class PostgresConnection:
 
     async def get_mega_emotes(self, guild_id: int, emote_name: str) -> List[Emoji]:
         await self.cur.execute(
-            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where guild_id=%(guild_id)s and trim(name) ~ ('^' || %(emote_name)s || '_\d_\d$') and usable=true",
+            "select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where guild_id=%(guild_id)s and trim(name) ~ ('^' || %(emote_name)s || '_\d_\d$') and usable=true",
             parameters={"guild_id": guild_id, "emote_name": emote_name}
         )
         results = await self.cur.fetchall()
