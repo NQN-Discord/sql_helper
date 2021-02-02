@@ -355,6 +355,7 @@ class PostgresConnection:
         return [emote_id for emote_id, in results]
 
     async def get_emote_like(self, emote_id: int) -> Optional[Emoji]:
+        # Get the emoji we're searching for
         await self.cur.execute(
             "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) FROM emote_ids WHERE emote_id=%(emote_id)s LIMIT 1",
             parameters={"emote_id": emote_id}
@@ -364,6 +365,7 @@ class PostgresConnection:
             return None
         emote = SQLEmoji(*results[0])
         if not (emote.guild_id and emote.usable):
+            # If we can't use this one, find one like it
             await self.cur.execute(
                 "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) FROM emote_ids WHERE emote_hash=%(emote_hash)s and guild_id is not null and usable=true LIMIT 1",
                 parameters={"emote_hash": emote.emote_hash}
@@ -445,7 +447,7 @@ class PostgresConnection:
 
     async def get_mega_emotes(self, guild_id: int, emote_name: str) -> List[Emoji]:
         await self.cur.execute(
-            "select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where guild_id=%(guild_id)s and trim(name) ~ ('^' || %(emote_name)s || '_\d_\d$') and usable=true",
+            "select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where guild_id=%(guild_id)s and trim(name) ~ ('^' || %(emote_name)s || '_\d_\d$') and usable=true and has_roles=false and manual_block=false",
             parameters={"guild_id": guild_id, "emote_name": emote_name}
         )
         results = await self.cur.fetchall()
@@ -453,13 +455,13 @@ class PostgresConnection:
 
     async def _case_insensitive_get_emote(self, query_where, emote_name: str, parameters) -> Optional[Emoji]:
         await self.cur.execute(
-            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where {query_where} and lower(trim(name))=lower(%(emote_name)s) and usable=true",
+            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where {query_where} and lower(trim(name))=lower(%(emote_name)s) and usable=true and has_roles=false and manual_block=false",
             parameters={**parameters, "emote_name": emote_name}
         )
         emote = await self._get_cur_emoji()
         if emote and emote.name != emote_name:
             await self.cur.execute(
-                f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where {query_where} and trim(name)=%(emote_name)s and usable=true",
+                f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where {query_where} and trim(name)=%(emote_name)s and usable=true and has_roles=false and manual_block=false",
                 parameters={**parameters, "emote_name": emote_name}
             )
             emote = await self._get_cur_emoji() or emote
