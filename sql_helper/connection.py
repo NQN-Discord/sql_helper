@@ -6,7 +6,7 @@ from .webhook import Webhook
 from .pack import Pack
 from .guild_feature import GuildFeature
 from .premium_user import PremiumUser
-from .emoji import SQLEmoji
+from .emoji import SQLEmoji, EmojiCounts
 
 
 class AsyncList:
@@ -439,6 +439,14 @@ class PostgresConnection:
             parameters={"guild_id": guild_id}
         )
 
+    async def guild_emote_counts(self, guild_id: int) -> EmojiCounts:
+        await self.cur.execute(
+            "SELECT COUNT(*) filter(where not animated) as static, COUNT(*) filter(where animated) as animated FROM emote_ids where guild_id=%(guild_id)s",
+            parameters={"guild_id": guild_id}
+        )
+        counts = await self.cur.fetchall()
+        return EmojiCounts(static=counts[0][0], animated=counts[0][1])
+
     async def get_mutual_guild_emote(self, user_id: int, emote_name: str) -> Optional[Emoji]:
         return await self._case_insensitive_get_emote(
             "guild_id in (select guild_id from members where user_id=%(user_id)s)",
@@ -453,6 +461,30 @@ class PostgresConnection:
             parameters={"user_id": user_id}
         )
 
+    async def get_guild_emotes(self, guild_id: int) -> List[Emoji]:
+        return await self._get_emojis(
+            "guild_id=%(guild_id)s",
+            parameters={"guild_id": guild_id}
+        )
+
+    async def get_mutual_guild_emotes(self, user_id: int) -> List[Emoji]:
+        return await self._get_emojis(
+            "guild_id in (select guild_id from members where user_id=%(user_id)s)",
+            parameters={"user_id": user_id}
+        )
+
+    async def get_guilds_emotes(self, guild_ids: List[int]) -> List[Emoji]:
+        return await self._get_emojis(
+            "guild_id = ANY(%(guild_ids)s)",
+            parameters={"guild_ids": guild_ids}
+        )
+
+    async def get_pack_guild_emotes(self, user_id: int) -> List[Emoji]:
+        return await self._get_emojis(
+            "guild_id in (select guild_id from user_packs where user_id=%(user_id)s)",
+            parameters={"user_id": user_id}
+        )
+
     async def get_mega_emotes(self, guild_id: int, emote_name: str) -> List[Emoji]:
         await self.cur.execute(
             "select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where guild_id=%(guild_id)s and trim(name) ~ ('^' || %(emote_name)s || '_\d_\d$') and usable=true and has_roles=false and manual_block=false",
@@ -460,6 +492,14 @@ class PostgresConnection:
         )
         results = await self.cur.fetchall()
         return [self._get_emoji(SQLEmoji(*emote)) for emote in results]
+
+    async def _get_emojis(self, query_where, parameters) -> List[Emoji]:
+        await self.cur.execute(
+            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) from emote_ids where {query_where} and usable=true and has_roles=false and manual_block=false",
+            parameters=parameters
+        )
+        results = await self.cur.fetchall()
+        return [self._get_emoji(SQLEmoji(*i)) for i in results]
 
     async def _case_insensitive_get_emote(self, query_where, emote_name: str, parameters) -> Optional[Emoji]:
         await self.cur.execute(
