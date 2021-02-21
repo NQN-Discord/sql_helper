@@ -479,6 +479,12 @@ class PostgresConnection:
             parameters={"guild_ids": guild_ids}
         )
 
+    async def get_emotes(self, emote_ids: List[int]) -> List[Emoji]:
+        return await self._get_emojis(
+            "emote_id = ANY(%(emote_ids)s) and guild_id is not NULL",
+            parameters={"emote_ids": emote_ids}
+        )
+
     async def get_pack_guild_emotes(self, user_id: int) -> List[Emoji]:
         return await self._get_emojis(
             "guild_id in (select guild_id from user_packs where user_id=%(user_id)s)",
@@ -499,7 +505,8 @@ class PostgresConnection:
             parameters=parameters
         )
         results = await self.cur.fetchall()
-        return [self._get_emoji(SQLEmoji(*i)) for i in results]
+        emotes = (self._get_emoji(SQLEmoji(*i)) for i in results)
+        return [emote for emote in emotes if emote]
 
     async def _case_insensitive_get_emote(self, query_where, emote_name: str, parameters) -> Optional[Emoji]:
         await self.cur.execute(
