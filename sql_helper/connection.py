@@ -164,16 +164,58 @@ class PostgresConnection:
                 )
 
     async def add_guild_message(self, *, message_id: int, guild_id: int, channel_id: int, user_id: int, content: str):
-        await self.cur.execute(
-            "INSERT INTO guild_messages (guild_id, channel_id, message_id, user_id, content) VALUES (%(guild_id)s, %(channel_id)s, %(message_id)s, %(user_id)s, %(content)s) ON CONFLICT ON CONSTRAINT guild_messages_pk DO UPDATE SET content = %(content)s",
-            parameters={
-                "guild_id": guild_id,
-                "channel_id": channel_id,
-                "message_id": message_id,
-                "user_id": user_id,
-                "content": content
-            }
-        )
+        try:
+            await self.cur.execute(
+                "INSERT INTO guild_messages (guild_id, channel_id, message_id, user_id, content) VALUES (%(guild_id)s, %(channel_id)s, %(message_id)s, %(user_id)s, %(content)s) ON CONFLICT ON CONSTRAINT guild_messages_pk DO UPDATE SET content = %(content)s",
+                parameters={
+                    "guild_id": guild_id,
+                    "channel_id": channel_id,
+                    "message_id": message_id,
+                    "user_id": user_id,
+                    "content": content
+                }
+            )
+        except ValueError:
+            # A string literal cannot contain NUL (0x00) characters.
+            pass
+
+
+    async def add_guild_message_bulk(self, messages: List[GuildMessage]):
+        guilds = []
+        channels = []
+        message_ids = []
+        users = []
+        contents = []
+        for i in messages:
+            guilds.append(i.guild_id)
+            channels.append(i.channel_id)
+            message_ids.append(i.message_id)
+            users.append(i.user_id)
+            contents.append(i.content)
+        try:
+            await self.cur.execute(
+                "INSERT INTO guild_messages (guild_id, channel_id, message_id, user_id, content) VALUES (unnest(%(guild_id)s), unnest(%(channel_id)s), unnest(%(message_id)s), unnest(%(user_id)s), unnest(%(content)s)) ON CONFLICT ON CONSTRAINT guild_messages_pk DO UPDATE SET content = excluded.content",
+                parameters={
+                    "guild_id": guilds,
+                    "channel_id": channels,
+                    "message_id": message_ids,
+                    "user_id": users,
+                    "content": contents
+                }
+            )
+        except ValueError:
+            # A string literal cannot contain NUL (0x00) characters.
+            for i in messages:
+                try:
+                    await self.add_guild_message(
+                        message_id=i.message_id,
+                        channel_id=i.channel_id,
+                        guild_id=i.guild_id,
+                        user_id=i.user_id,
+                        content=i.content
+                    )
+                except ValueError:
+                    pass
 
     async def delete_guild_message(self, *, message_id: int):
         await self.cur.execute(
