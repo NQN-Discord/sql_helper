@@ -7,6 +7,7 @@ from .pack import Pack
 from .guild_feature import GuildFeature
 from .premium_user import PremiumUser
 from .emoji import SQLEmoji, EmojiCounts
+from .guild_message import GuildMessage
 
 
 class AsyncList:
@@ -161,6 +162,92 @@ class PostgresConnection:
                         "name": webhook.name
                     }
                 )
+
+    async def add_guild_message(self, *, message_id: int, guild_id: int, channel_id: int, user_id: int, content: str):
+        await self.cur.execute(
+            "INSERT INTO guild_messages (guild_id, channel_id, message_id, user_id, content) VALUES (%(guild_id)s, %(channel_id)s, %(message_id)s, %(user_id)s, %(content)s) ON CONFLICT ON CONSTRAINT guild_messages_pk DO UPDATE SET content = %(content)s",
+            parameters={
+                "guild_id": guild_id,
+                "channel_id": channel_id,
+                "message_id": message_id,
+                "user_id": user_id,
+                "content": content
+            }
+        )
+
+    async def delete_guild_message(self, *, message_id: int):
+        await self.cur.execute(
+            "DELETE FROM guild_messages where message_id=%(message_id)s",
+            parameters={
+                "message_id": message_id
+            }
+        )
+
+    @async_list
+    async def get_guild_messages(
+            self,
+            *,
+            message_id: Optional[int] = None,
+            guild_id: Optional[int] = None,
+            channel_id: Optional[int] = None,
+            user_id: Optional[int] = None,
+            offset: Optional[int] = None,
+            no_results: int
+    ) -> List[GuildMessage]:
+        await self._get_guild_message("*", "ORDER BY message_id DESC", message_id, guild_id, channel_id, user_id, offset, no_results)
+        results = await self.cur.fetchall()
+        return [GuildMessage(*i) for i in results]
+
+    async def get_guild_message_count(
+            self,
+            *,
+            message_id: Optional[int] = None,
+            guild_id: Optional[int] = None,
+            channel_id: Optional[int] = None,
+            user_id: Optional[int] = None,
+    ) -> int:
+        await self._get_guild_message("count(*)", "", message_id, guild_id, channel_id, user_id, 0, 1)
+        results = await self.cur.fetchall()
+        return results[0][0]
+
+    async def _get_guild_message(
+            self,
+            select: str,
+            order: str,
+            message_id: Optional[int] = None,
+            guild_id: Optional[int] = None,
+            channel_id: Optional[int] = None,
+            user_id: Optional[int] = None,
+            offset: Optional[int] = None,
+            no_results: int = 1
+    ):
+        if message_id is not None:
+            await self.cur.execute(
+                f"SELECT {select} FROM guild_messages WHERE message_id=%(message_id)s LIMIT %(limit)s OFFSET %(offset)s",
+                parameters={"message_id": message_id, "limit": no_results, "offset": offset}
+            )
+        elif channel_id and user_id:
+            await self.cur.execute(
+                f"SELECT {select} FROM guild_messages WHERE channel_id=%(channel_id)s AND user_id=%(user_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
+                parameters={"channel_id": channel_id, "user_id": user_id, "limit": no_results, "offset": offset}
+            )
+        elif channel_id:
+            await self.cur.execute(
+                f"SELECT {select} FROM guild_messages WHERE channel_id=%(channel_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
+                parameters={"channel_id": channel_id, "limit": no_results, "offset": offset}
+            )
+        elif guild_id and user_id:
+            await self.cur.execute(
+                f"SELECT {select} FROM guild_messages WHERE guild_id=%(guild_id)s AND user_id=%(user_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
+                parameters={"guild_id": guild_id, "user_id": user_id, "limit": no_results, "offset": offset}
+            )
+        elif guild_id:
+            await self.cur.execute(
+                f"SELECT {select} FROM guild_messages WHERE guild_id=%(guild_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
+                parameters={"guild_id": guild_id, "limit": no_results, "offset": offset}
+            )
+        else:
+            raise NotImplementedError(f"Invalid combination of requests: message_id={message_id} guild_id={guild_id} channel_id={channel_id} user_id={user_id}")
 
     @async_list
     async def pack_ids(self):

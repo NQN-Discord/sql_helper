@@ -5,3 +5,4 @@ from .pack import Pack
 from .guild_feature import GuildFeature
 from .premium_user import PremiumUser
 from .emoji import SQLEmoji
+from .guild_message import GuildMessage
