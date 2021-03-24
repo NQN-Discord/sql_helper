@@ -491,6 +491,14 @@ class PostgresConnection:
         results = await self.cur.fetchall()
         return bool(results)
 
+    async def is_emote_usable(self, emote_id: int) -> bool:
+        await self.cur.execute(
+            "SELECT 1 FROM emote_ids WHERE emote_id=%(emote_id)s and has_roles=false and manual_block=false and usable=true",
+            parameters={"emote_id": emote_id}
+        )
+        results = await self.cur.fetchall()
+        return bool(results)
+
     async def get_emote_like(self, emote_id: int) -> Optional[Emoji]:
         # Get the emoji we're searching for
         await self.cur.execute(
