@@ -64,6 +64,17 @@ class PostgresConnection:
         )
         return bool(await self.cur.fetchall())
 
+    async def random_member(self, guild_id: int) -> Optional[int]:
+        for i in range(10):
+            await self.cur.execute(
+                "SELECT user_id FROM members WHERE guild_id=%(guild_id)s AND random() < (SELECT 2::decimal/count(*) FROM members WHERE guild_id=%(guild_id)s) LIMIT 1",
+                parameters={"guild_id": guild_id}
+            )
+            user_id = await self.cur.fetchall()
+            if user_id:
+                return user_id[0][0]
+        return
+
     @async_list
     async def alias_guilds(self) -> AsyncList:
         await self.cur.execute(
