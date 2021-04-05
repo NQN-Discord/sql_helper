@@ -302,6 +302,23 @@ class PostgresConnection:
         else:
             raise NotImplementedError(f"Invalid combination of requests: message_id={message_id} guild_id={guild_id} channel_id={channel_id} user_id={user_id}")
 
+    async def get_emote_hashes(self, emote_ids: List[int]) -> Dict[str, int]:
+        await self.cur.execute(
+            "SELECT emote_id, emote_hash FROM emote_ids WHERE emote_id IN (SELECT(UNNEST(%(emote_ids)s)))",
+            parameters={"emote_ids": emote_ids}
+        )
+        emote_hashes = await self.cur.fetchall()
+        return {emote_hash: emote_id for emote_id, emote_hash in emote_hashes}
+
+    async def get_emote_hash(self, emote_id: int) -> Optional[str]:
+        await self.cur.execute(
+            "SELECT emote_hash FROM emote_ids WHERE emote_id=%(emote_id)s",
+            parameters={"emote_id": emote_id}
+        )
+        emote_hash = await self.cur.fetchall()
+        if emote_hash and emote_hash[0][0]:
+            return emote_hash[0][0]
+
     @async_list
     async def pack_ids(self):
         await self.cur.execute("SELECT guild_id from packs")
