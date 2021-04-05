@@ -1,4 +1,4 @@
-from typing import Union, Awaitable, Optional, List, Tuple, Callable
+from typing import Union, Awaitable, Optional, List, Tuple, Callable, Dict
 from discord import User, Guild, Object, Emoji
 from discord import Webhook as DiscordWebhook
 from .guild_settings import GuildSettings
