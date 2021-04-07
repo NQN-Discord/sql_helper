@@ -85,14 +85,14 @@ class PostgresConnection:
     @async_list
     async def guild_settings(self) -> AsyncList:
         await self.cur.execute(
-            "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale, enable_pings, max_guildwide_emotes FROM guild_settings"
+            "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale, enable_pings, max_guildwide_emotes, enable_user_content FROM guild_settings"
         )
         results = await self.cur.fetchall()
         return [GuildSettings(*i) for i in results]
 
     async def get_guild_settings(self, guild_id: Union[Guild, int]) -> Optional[GuildSettings]:
         await self.cur.execute(
-            "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale, enable_pings, max_guildwide_emotes FROM guild_settings WHERE guild_id=%(guild_id)s",
+            "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale, enable_pings, max_guildwide_emotes, enable_user_content FROM guild_settings WHERE guild_id=%(guild_id)s",
             parameters={"guild_id": guild_id}
         )
         results = await self.cur.fetchall()
@@ -133,10 +133,10 @@ class PostgresConnection:
 
     async def set_guild_settings(self, guild: GuildSettings):
         await self.cur.execute(
-            "INSERT INTO guild_settings (guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale, enable_pings, max_guildwide_emotes)  VALUES "
-            "(%(guild_id)s, %(prefix)s, %(nitro_role)s, %(boost_channel)s, %(boost_role)s, %(audit_channel)s, %(enable_stickers)s, %(enable_nitro)s, %(enable_replies)s, %(enable_masked_links)s, %(is_alias_server)s, %(locale)s, %(enable_pings)s, %(max_guildwide_emotes)s)"
-            'ON CONFLICT (guild_id) DO UPDATE SET (prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, "locale", enable_pings, max_guildwide_emotes) = '
-            "(EXCLUDED.prefix, EXCLUDED.nitro_role, EXCLUDED.boost_channel, EXCLUDED.boost_role, EXCLUDED.audit_channel, EXCLUDED.enable_stickers, EXCLUDED.enable_nitro, EXCLUDED.enable_replies, EXCLUDED.enable_masked_links, EXCLUDED.is_alias_server, EXCLUDED.locale, EXCLUDED.enable_pings, EXCLUDED.max_guildwide_emotes)",
+            "INSERT INTO guild_settings (guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale, enable_pings, max_guildwide_emotes, enable_user_content)  VALUES "
+            "(%(guild_id)s, %(prefix)s, %(nitro_role)s, %(boost_channel)s, %(boost_role)s, %(audit_channel)s, %(enable_stickers)s, %(enable_nitro)s, %(enable_replies)s, %(enable_masked_links)s, %(is_alias_server)s, %(locale)s, %(enable_pings)s, %(max_guildwide_emotes)s, %(enable_user_content)s)"
+            'ON CONFLICT (guild_id) DO UPDATE SET (prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, "locale", enable_pings, max_guildwide_emotes, enable_user_content) = '
+            "(EXCLUDED.prefix, EXCLUDED.nitro_role, EXCLUDED.boost_channel, EXCLUDED.boost_role, EXCLUDED.audit_channel, EXCLUDED.enable_stickers, EXCLUDED.enable_nitro, EXCLUDED.enable_replies, EXCLUDED.enable_masked_links, EXCLUDED.is_alias_server, EXCLUDED.locale, EXCLUDED.enable_pings, EXCLUDED.max_guildwide_emotes, EXCLUDED.enable_user_content)",
             parameters={slot: getattr(guild, slot) for slot in guild.__slots__}
         )
 
