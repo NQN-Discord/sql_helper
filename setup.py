@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 setup(
@@ -7,6 +7,6 @@ setup(
    description="A helper for PostgreSQL ",
    author='Blue',
    url="https://nqn.blue/",
-   packages=["sql_helper"],
+   packages=find_packages(),
    install_requires=["aiopg", "discord.py"]
 )
