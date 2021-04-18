@@ -1,3 +1,5 @@
 aiopg
 discord.py
 prometheus_async[aiohttp]
+pytz
+python-dateutil

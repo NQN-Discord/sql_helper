@@ -40,26 +40,15 @@ class PremiumMixin(_PostgresConnection):
                     parameters={"guild_ids": guild_ids}
                 )
 
-    async def set_premium_user(self, user: PremiumUser):
+    async def set_premium_user_discord_override(self, member_id: str, discord_id: int):
         await self.cur.execute(
-            "INSERT INTO premium_users (patreon_id, discord_id, lifetime_support_cents, last_charge_date, last_charge_status, tokens, tokens_spent) VALUES "
-            "(%(patreon_id)s, %(discord_id)s, %(lifetime_support_cents)s, %(last_charge_date)s, %(last_charge_status)s, %(tokens)s, %(tokens_spent)s)"
-            'ON CONFLICT (patreon_id) DO UPDATE SET (discord_id, lifetime_support_cents, last_charge_date, last_charge_status, tokens, tokens_spent) = '
-            "(EXCLUDED.discord_id, EXCLUDED.lifetime_support_cents, EXCLUDED.last_charge_date, EXCLUDED.last_charge_status, EXCLUDED.tokens, EXCLUDED.tokens_spent)",
-            parameters={
-                "patreon_id": user.patreon_id,
-                "discord_id": user.discord_id,
-                "lifetime_support_cents": user.lifetime_support_cents,
-                "last_charge_date": user.last_charge_date,
-                "last_charge_status": user.last_charge_status,
-                "tokens": user.tokens,
-                "tokens_spent": user.tokens_spent
-            }
+            "UPDATE premium_users SET discord_override_id=%(discord_id)s WHERE pledge_id=%(member_id)s",
+            parameters={"member_id": member_id, "discord_id": discord_id}
         )
 
     async def get_premium_user_discord_ids(self) -> List[int]:
         await self.cur.execute(
-            "SELECT discord_id FROM premium_users where discord_id is not null",
+            "SELECT COALESCE(discord_override_id, discord_patreon_id) FROM premium_users where discord_patreon_id is not null or discord_override_id is not null",
             parameters={}
         )
         results = await self.cur.fetchall()
@@ -90,10 +79,10 @@ class PremiumMixin(_PostgresConnection):
             last_charge_status.append(user.last_charge_status and user.last_charge_status.value)
             pledge_ids.append(user.pledge_id)
         await self.cur.execute(
-            "INSERT INTO premium_users (patreon_id, discord_id, lifetime_support_cents, last_charge_date, last_charge_status, tokens, tokens_spent, pledge_id) VALUES "
-            "(unnest(%(patreon_ids)s), unnest(%(discord_ids)s), unnest(%(lifetime_support_cents)s), unnest(%(last_charge_dates)s), unnest(%(last_charge_status)s)::premium_last_charge_status_enum, 0, 0, unnest(%(pledge_ids)s))"
-            'ON CONFLICT (patreon_id) DO UPDATE SET (discord_id, lifetime_support_cents, last_charge_date, last_charge_status, tokens, tokens_spent, pledge_id) = '
-            "(EXCLUDED.discord_id, EXCLUDED.lifetime_support_cents, EXCLUDED.last_charge_date, EXCLUDED.last_charge_status, premium_users.tokens, premium_users.tokens_spent, EXCLUDED.pledge_id)",
+            "INSERT INTO premium_users (patreon_id, discord_patreon_id, lifetime_support_cents, last_charge_date, last_charge_status, tokens, tokens_spent, pledge_id) VALUES "
+            "(unnest(%(patreon_ids)s), unnest(%(discord_ids)s::bigint[]), unnest(%(lifetime_support_cents)s), unnest(%(last_charge_dates)s), unnest(%(last_charge_status)s)::premium_last_charge_status_enum, 0, 0, unnest(%(pledge_ids)s))"
+            'ON CONFLICT (patreon_id) DO UPDATE SET (discord_patreon_id, lifetime_support_cents, last_charge_date, last_charge_status, tokens, tokens_spent, pledge_id) = '
+            "(EXCLUDED.discord_patreon_id, EXCLUDED.lifetime_support_cents, EXCLUDED.last_charge_date, EXCLUDED.last_charge_status, premium_users.tokens, premium_users.tokens_spent, EXCLUDED.pledge_id)",
             parameters={
                 "patreon_ids": patreon_ids,
                 "discord_ids": discord_ids,
@@ -104,19 +93,19 @@ class PremiumMixin(_PostgresConnection):
             }
         )
 
-    async def get_premium_user_patreon(self, patreon_id: str) -> Optional[PremiumUser]:
+    async def get_premium_user_patreon(self, member_id: str) -> Optional[PremiumUser]:
         await self.cur.execute(
-            "SELECT * FROM premium_users WHERE patreon_id=%(patreon_id)s",
-            parameters={"patreon_id": patreon_id}
+            "SELECT * FROM premium_users WHERE pledge_id=%(pledge_id)s",
+            parameters={"pledge_id": member_id}
         )
         results = await self.cur.fetchall()
         if not results:
             return None
         return PremiumUser(*results[0])
 
-    async def get_premium_user_discord(self, discord_id: str) -> Optional[PremiumUser]:
+    async def get_premium_user_discord(self, discord_id: int) -> Optional[PremiumUser]:
         await self.cur.execute(
-            "SELECT * FROM premium_users WHERE discord_id=%(discord_id)s",
+            "SELECT * FROM premium_users WHERE coalesce(discord_override_id, discord_patreon_id)=%(discord_id)s",
             parameters={"discord_id": discord_id}
         )
 
@@ -124,3 +113,11 @@ class PremiumMixin(_PostgresConnection):
         if not results:
             return None
         return PremiumUser(*results[0])
+
+    async def get_premium_users(self) -> List[PremiumUser]:
+        await self.cur.execute(
+            "SELECT * FROM premium_users WHERE last_charge_status is not null",
+            parameters={}
+        )
+        results = await self.cur.fetchall()
+        return [PremiumUser(*i) for i in results]
