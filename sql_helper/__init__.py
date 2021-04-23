@@ -7,3 +7,4 @@ from .premium_user import PremiumUser
 from .emoji import SQLEmoji
 from .guild_message import GuildMessage
 from .premium_last_charge_status import PremiumLastChargeStatus
+from .persona import Persona

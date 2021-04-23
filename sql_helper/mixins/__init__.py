@@ -5,3 +5,4 @@ from .guild_settings import GuildSettingsMixin
 from .guild_webhooks import GuildWebhooksMixin
 from .packs import PacksMixin
 from .premium import PremiumMixin
+from .personas import PersonasMixin
