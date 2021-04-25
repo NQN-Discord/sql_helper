@@ -18,7 +18,8 @@ class GuildSettings:
         "enable_pings",
         "max_guildwide_emotes",
         "enable_user_content",
-        "enable_personas"
+        "enable_personas",
+        "enable_dashboard_posting"
     ]
     
     def __init__(
@@ -38,7 +39,8 @@ class GuildSettings:
             enable_pings,
             max_guildwide_emotes,
             enable_user_content,
-            enable_personas
+            enable_personas,
+            enable_dashboard_posting
     ):
         self.guild_id = guild_id
         self.prefix = prefix
@@ -56,6 +58,7 @@ class GuildSettings:
         self.max_guildwide_emotes = max_guildwide_emotes
         self.enable_user_content = self._parse_boolean(enable_user_content)
         self.enable_personas = self._parse_boolean(enable_personas, on_none=False)
+        self.enable_dashboard_posting = self._parse_boolean(enable_dashboard_posting)
 
     def _parse_boolean(self, bool: Optional[bool], on_none: Optional[bool] = True):
         return on_none if bool is None else bool
