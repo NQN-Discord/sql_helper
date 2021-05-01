@@ -32,5 +32,5 @@ class PremiumUser(namedtuple(
         return (
             (self.discord_id or not discord_requirement) and
             self.last_charge_status in ALLOWED_LAST_CHARGE_STATUSES and
-            self.last_charge_date + relativedelta(months=1) >= date.today()
+            self.last_charge_date + relativedelta(months=1, days=5) >= date.today()
         )
