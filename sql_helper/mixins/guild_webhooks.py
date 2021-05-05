@@ -23,13 +23,18 @@ class GuildWebhooksMixin(_PostgresConnection):
                 parameters={"channel_id": channel_id}
             )
             for webhook in webhooks:
+                try:
+                    user_id = webhook.user_id
+                except AttributeError:
+                    user_id = webhook.user and webhook.user.id
                 await self.cur.execute(
-                    "INSERT INTO webhooks VALUES (%(webhook_id)s, %(guild_id)s, %(channel_id)s, %(token)s, %(name)s) "
+                    "INSERT INTO webhooks VALUES (%(webhook_id)s, %(guild_id)s, %(channel_id)s, %(token)s, %(name)s, %(user_id)s) "
                     "ON CONFLICT (webhook_id) DO UPDATE SET channel_id=excluded.channel_id, name=excluded.name",
                     parameters={
                         "webhook_id": webhook.id,
                         "guild_id": webhook.guild_id,
                         "channel_id": webhook.channel_id,
+                        "user_id": user_id,
                         "token": webhook.token,
                         "name": webhook.name
                     }
