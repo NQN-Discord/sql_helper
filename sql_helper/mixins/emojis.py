@@ -56,6 +56,14 @@ class EmojisMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         return bool(results)
 
+    async def share_hashes(self, emote_id_1: int, emote_id_2: int) -> bool:
+        await self.cur.execute(
+            "select 1 from emote_ids where emote_hash=(select emote_hash from emote_ids where emote_id = %(emote_id_1)s) and emote_id = %(emote_id_2)s",
+            parameters={"emote_id_1": emote_id_1, "emote_id_2": emote_id_2}
+        )
+        results = await self.cur.fetchall()
+        return bool(results)
+
     async def get_emote_like(self, emote_id: int) -> Optional[Emoji]:
         # Get the emoji we're searching for
         await self.cur.execute(
