@@ -7,6 +7,7 @@ from .mixins import *
 
 class PostgresConnection(
     EmojisMixin,
+    EmojisUsedMixin,
     GuildMembersMixin,
     GuildMessagesMixin,
     GuildSettingsMixin,
