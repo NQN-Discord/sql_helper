@@ -1,6 +1,7 @@
 from typing import List, Optional
 from discord import PartialEmoji
 from .._connection import _PostgresConnection
+from ..async_list import AsyncList, async_list
 
 
 class EmojisUsedMixin(_PostgresConnection):
@@ -39,3 +40,27 @@ class EmojisUsedMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         if results:
             return PartialEmoji(animated=results[0][0], name=results[0][1].rstrip(" "), id=results[0][2])
+
+    @async_list
+    async def recently_used_guild_emotes(self, guild_id: int, count: int) -> AsyncList:
+        await self.cur.execute(
+            f"SELECT animated, \"name\", emote_id FROM emotes_used WHERE guild_id=%(guild_id)s ORDER BY message_id DESC LIMIT %(count)s",
+            parameters={"guild_id": guild_id, "count": count}
+        )
+        return await _get_emotes(self.cur)
+
+    @async_list
+    async def recently_used_user_emotes(self, user_id: int, count: int) -> AsyncList:
+        await self.cur.execute(
+            f"SELECT animated, \"name\", emote_id FROM emotes_used WHERE author_id=%(author_id)s ORDER BY message_id DESC LIMIT %(count)s",
+            parameters={"author_id": user_id, "count": count}
+        )
+        return await _get_emotes(self.cur)
+
+
+async def _get_emotes(cur) -> List[PartialEmoji]:
+    results = await cur.fetchall()
+    return [
+        PartialEmoji(animated=animated, name=name.rstrip(" "), id=id)
+        for animated, name, id in results
+    ]
