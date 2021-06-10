@@ -15,6 +15,13 @@ class GuildSettingsMixin(_PostgresConnection):
         return [gid for gid, in await self.cur.fetchall()]
 
     @async_list
+    async def personas_guilds(self) -> AsyncList:
+        await self.cur.execute(
+            "SELECT guild_id FROM guild_settings WHERE enable_personas=true"
+        )
+        return [gid for gid, in await self.cur.fetchall()]
+
+    @async_list
     async def guild_settings(self) -> AsyncList:
         await self.cur.execute(
             "SELECT guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, locale, enable_pings, max_guildwide_emotes, enable_user_content, enable_personas, enable_dashboard_posting FROM guild_settings"
