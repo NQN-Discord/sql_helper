@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from discord import Webhook as DiscordWebhook
 from ..webhook import Webhook
 
@@ -16,12 +16,22 @@ class GuildWebhooksMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         return [Webhook(*i) for i in results]
 
-    async def set_channel_webhooks(self, channel_id: int, webhooks: List[DiscordWebhook]):
+    async def get_webhook_by_id(self, webhook_id: int) -> Optional[DiscordWebhook]:
+        await self.cur.execute(
+            "SELECT * FROM webhooks WHERE webhook_id=%(webhook_id)s",
+            parameters={"webhook_id": webhook_id}
+        )
+        results = await self.cur.fetchall()
+        if results:
+            return Webhook(*results[0])
+
+    async def set_channel_webhooks(self, channel_id: int, webhooks: List[DiscordWebhook], *, delete: bool = True):
         async with self.cur.begin():
-            await self.cur.execute(
-                "DELETE FROM webhooks WHERE channel_id=%(channel_id)s",
-                parameters={"channel_id": channel_id}
-            )
+            if delete:
+                await self.cur.execute(
+                    "DELETE FROM webhooks WHERE channel_id=%(channel_id)s",
+                    parameters={"channel_id": channel_id}
+                )
             for webhook in webhooks:
                 try:
                     user_id = webhook.user_id
