@@ -95,6 +95,23 @@ class GuildMessagesMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         return results[0][0]
 
+    @async_list
+    async def get_users_posted_since(self, since: int):
+        await self.cur.execute(
+            "select distinct user_id from guild_messages where message_id > %(message_id)s",
+            parameters={"message_id": since}
+        )
+        results = await self.cur.fetchall()
+        return (i[0] for i in results)
+
+    async def user_has_posted(self, user_id: int) -> bool:
+        await self.cur.execute(
+            "select 1 from guild_messages where user_id > %(user_id)s",
+            parameters={"user_id": user_id}
+        )
+        results = await self.cur.fetchall()
+        return bool(results)
+
     async def _get_guild_message(
             self,
             select: str,
