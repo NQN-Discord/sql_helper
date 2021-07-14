@@ -106,7 +106,7 @@ class GuildMessagesMixin(_PostgresConnection):
 
     async def user_has_posted(self, user_id: int) -> bool:
         await self.cur.execute(
-            "select 1 from guild_messages where user_id > %(user_id)s",
+            "select 1 from guild_messages where user_id = %(user_id)s",
             parameters={"user_id": user_id}
         )
         results = await self.cur.fetchall()
