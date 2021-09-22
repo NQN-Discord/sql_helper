@@ -24,6 +24,15 @@ class PacksMixin(_PostgresConnection):
         guilds = await self.cur.fetchall()
         return [g for g, in guilds]
 
+    @async_list
+    async def get_top_packs_by_count(self) -> AsyncList:
+        await self.cur.execute(
+            "SELECT packs.* FROM (SELECT guild_id, COUNT(*) from user_packs GROUP BY guild_id ORDER BY count DESC LIMIT 25) a JOIN packs on a.guild_id=packs.guild_id",
+            parameters={}
+        )
+        packs = await self.cur.fetchall()
+        return [Pack(*p) for p in packs]
+
     async def user_pack_count(self, user_id: Union[Object, int]) -> int:
         if not isinstance(user_id, int):
             user_id = user_id.id
