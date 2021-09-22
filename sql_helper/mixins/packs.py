@@ -10,9 +10,8 @@ class PacksMixin(_PostgresConnection):
 
     @async_list
     async def pack_ids(self):
-        await self.cur.execute("SELECT guild_id from packs")
-        guilds = await self.cur.fetchall()
-        return [g for g, in guilds]
+        await self.cur.execute("SELECT guild_id, pack_name from packs")
+        return await self.cur.fetchall()
 
     @async_list
     async def user_pack_ids(self, user_id: Union[User, int]) -> AsyncList:
