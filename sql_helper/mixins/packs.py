@@ -123,6 +123,15 @@ class PacksMixin(_PostgresConnection):
         else:
             return
 
+    @async_list
+    async def get_public_packs(self) -> AsyncList:
+        await self.cur.execute(
+            "SELECT * FROM packs WHERE is_public=true",
+            parameters={}
+        )
+        results = await self.cur.fetchall()
+        return [Pack(*i) for i in results]
+
     async def join_pack(self, *, user_id: int, guild_id: int):
         await self.cur.execute(
             "INSERT INTO user_packs VALUES (%(user_id)s, %(guild_id)s)",
