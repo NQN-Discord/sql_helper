@@ -13,6 +13,13 @@ class PacksMixin(_PostgresConnection):
         await self.cur.execute("SELECT guild_id, pack_name from packs")
         return await self.cur.fetchall()
 
+
+    @async_list
+    async def all_packs(self):
+        await self.cur.execute("SELECT * from packs")
+        packs = await self.cur.fetchall()
+        return [Pack(*p) for p in packs]
+
     @async_list
     async def user_pack_ids(self, user_id: Union[User, int]) -> AsyncList:
         if not isinstance(user_id, int):
