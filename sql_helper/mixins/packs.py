@@ -65,6 +65,14 @@ class PacksMixin(_PostgresConnection):
         users = await self.cur.fetchall()
         return [g for g, in users]
 
+    @async_list
+    async def all_pack_size_emote_counts(self) -> AsyncList:
+        await self.cur.execute(
+            "SELECT guild_id, count(*) as user_count, (SELECT count(*) FROM emote_ids WHERE emote_ids.guild_id=user_packs.guild_id) as emote_count FROM user_packs GROUP BY guild_id",
+            parameters={}
+        )
+        return await self.cur.fetchall()
+
     async def in_pack(self, *, user_id: int, guild_id: int) -> bool:
         await self.cur.execute(
             "SELECT 1 FROM user_packs WHERE user_id=%(user_id)s AND guild_id=%(guild_id)s",
