@@ -14,7 +14,7 @@ class _PostgresConnection:
         self._get_emoji = get_emoji
         self.profiler = profiler
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "_PostgresConnection":
         self.pool_acq = self.pool.acquire()
         self.conn = await self.pool_acq.__aenter__()
         self.cur_acq = self.conn.cursor()

@@ -1,4 +1,4 @@
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Set
 from discord import Emoji
 from ..emoji import SQLEmoji, EmojiCounts
 
@@ -28,12 +28,12 @@ class EmojisMixin(_PostgresConnection):
     async def get_synonyms_for_emote(self, emote_hash: str, limit: Optional[int] = 10) -> List[int]:
         if limit is None:
             await self.cur.execute(
-                "SELECT emote_id FROM emote_ids WHERE emote_hash=%(emote_hash)s and usable=true",
+                "SELECT emote_id FROM emote_ids WHERE emote_hash=%(emote_hash)s and usable=true and has_roles=false and manual_block=false",
                 parameters={"emote_hash": emote_hash}
             )
         else:
             await self.cur.execute(
-                "SELECT emote_id FROM emote_ids WHERE emote_hash=%(emote_hash)s and usable=true LIMIT %(limit)s",
+                "SELECT emote_id FROM emote_ids WHERE emote_hash=%(emote_hash)s and usable=true and has_roles=false and manual_block=false LIMIT %(limit)s",
                 parameters={"emote_hash": emote_hash, "limit": limit}
             )
 
@@ -127,6 +127,27 @@ class EmojisMixin(_PostgresConnection):
             parameters={"guild_id": guild_id}
         )
 
+    async def clear_guilds_emojis(self, guild_ids: List[int]):
+        await self.cur.execute(
+            "UPDATE emote_ids SET guild_id=null where guild_id=ANY(%(guild_ids)s)",
+            parameters={"guild_ids": guild_ids}
+        )
+
+    async def clear_guilds_from_emojis(self, emoji_ids: List[int]):
+        await self.cur.execute(
+            "UPDATE emote_ids SET guild_id=null where emote_id=ANY(%(emoji_ids)s)",
+            parameters={"emoji_ids": emoji_ids}
+        )
+
+    async def get_guilds_with_emojis(self) -> Set[int]:
+        await self.cur.execute(
+            "SELECT guild_id FROM emote_ids WHERE guild_id IS NOT NULL",
+            parameters={}
+        )
+        results = await self.cur.fetchall()
+        return {guild_id for guild_id, in results}
+
+
     async def get_pack_emote(self, pack_name: str, emote_name: str) -> Optional[Emoji]:
         return await self._case_insensitive_get_emote(
             "guild_id=(select guild_id from packs where pack_name=%(pack_name)s)",
@@ -180,6 +201,14 @@ class EmojisMixin(_PostgresConnection):
             "guild_id = ANY(%(guild_ids)s)",
             parameters={"guild_ids": guild_ids}
         )
+
+    async def get_guilds_emotes_raw(self, guild_ids: List[int]) -> List:
+        await self.cur.execute(
+            f"select emote_id, guild_id, trim(name), has_roles from emote_ids where guild_id = ANY(%(guild_ids)s)",
+            parameters={"guild_ids": guild_ids}
+        )
+        results = await self.cur.fetchall()
+        return results
 
     async def get_emotes(self, emote_ids: List[int]) -> List[Emoji]:
         return await self._get_emojis(
