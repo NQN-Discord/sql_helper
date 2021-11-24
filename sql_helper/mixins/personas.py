@@ -15,14 +15,17 @@ class PersonasMixin(_PostgresConnection):
         personas = await self.cur.fetchall()
         return [Persona(*i) for i in personas]
 
-    async def get_persona(self, user_id: int, short_name: str) -> Optional[Persona]:
+    async def get_persona(self, user_id: int, name: str) -> Optional[Persona]:
         await self.cur.execute(
-            "SELECT * FROM personas WHERE user_id=%(user_id)s and short_name=%(short_name)s",
-            parameters={"user_id": user_id, "short_name": short_name}
+            "SELECT * FROM personas WHERE user_id=%(user_id)s and (short_name=%(name)s or display_name=%(name)s)",
+            parameters={"user_id": user_id, "name": name}
         )
         personas = await self.cur.fetchall()
         if personas:
+            if len(personas) != 1:
+                personas.sort(key=lambda p: p["short_name"] == name, reverse=True)
             return Persona(*personas[0])
+
 
     async def create_persona(self, persona: Persona):
         await self.cur.execute(
