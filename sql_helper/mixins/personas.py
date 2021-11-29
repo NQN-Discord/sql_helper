@@ -9,7 +9,7 @@ class PersonasMixin(_PostgresConnection):
     @async_list
     async def personas(self, user_id: int) -> AsyncList:
         await self.cur.execute(
-            "SELECT * FROM personas WHERE user_id=%(user_id)s",
+            "SELECT user_id, short_name, display_name, avatar_url FROM personas WHERE user_id=%(user_id)s",
             parameters={"user_id": user_id}
         )
         personas = await self.cur.fetchall()
@@ -17,13 +17,13 @@ class PersonasMixin(_PostgresConnection):
 
     async def get_persona(self, user_id: int, name: str) -> Optional[Persona]:
         await self.cur.execute(
-            "SELECT * FROM personas WHERE user_id=%(user_id)s and (short_name=%(name)s or display_name=%(name)s)",
+            "SELECT user_id, short_name, display_name, avatar_url FROM personas WHERE user_id=%(user_id)s and (short_name=%(name)s or display_name=%(name)s)",
             parameters={"user_id": user_id, "name": name}
         )
         personas = await self.cur.fetchall()
         if personas:
             if len(personas) != 1:
-                personas.sort(key=lambda p: p["short_name"] == name, reverse=True)
+                personas.sort(key=lambda p: p[1] == name, reverse=True)
             return Persona(*personas[0])
 
 
