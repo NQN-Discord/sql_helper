@@ -121,6 +121,12 @@ class EmojisMixin(_PostgresConnection):
             parameters={"emote_id": emote_id, "usable": usable}
         )
 
+    async def set_emotes_unusuable(self, emote_ids: List[int]):
+        await self.cur.execute(
+            "UPDATE emote_ids SET usable=false where emote_id=ANY(%(emote_ids)s)",
+            parameters={"emote_ids": emote_ids}
+        )
+
     async def clear_guild_emojis(self, guild_id: int):
         await self.cur.execute(
             "UPDATE emote_ids SET guild_id=null where guild_id=%(guild_id)s",
