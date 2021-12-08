@@ -14,7 +14,8 @@ class PostgresConnection(
     GuildWebhooksMixin,
     PacksMixin,
     PersonasMixin,
-    PremiumMixin
+    PremiumMixin,
+    EmojiHashesMixin
 ):
     pass
 

@@ -7,3 +7,4 @@ from .packs import PacksMixin
 from .premium import PremiumMixin
 from .personas import PersonasMixin
 from .emojis_used import EmojisUsedMixin
+from .emoji_hashes import EmojiHashesMixin
