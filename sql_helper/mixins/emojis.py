@@ -67,7 +67,7 @@ class EmojisMixin(_PostgresConnection):
     async def get_emote_like(self, emote_id: int) -> Optional[Emoji]:
         # Get the emoji we're searching for
         await self.cur.execute(
-            "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name) FROM emote_ids WHERE emote_id=%(emote_id)s LIMIT 1",
+            "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles FROM emote_ids WHERE emote_id=%(emote_id)s LIMIT 1",
             parameters={"emote_id": emote_id}
         )
         results = await self.cur.fetchall()
