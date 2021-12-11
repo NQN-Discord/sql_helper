@@ -56,6 +56,19 @@ class EmojisMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         return bool(results)
 
+    async def purge_emojis(self, emote_ids: List[int]) -> Set[int]:
+        await self.cur.execute(
+            "SELECT emote_id FROM emote_ids WHERE emote_id=ANY(%(emote_ids)s) and guild_id is NULL",
+            parameters={"emote_ids": emote_ids}
+        )
+        results = await self.cur.fetchall()
+        if results:
+            await self.cur.execute(
+                "DELETE FROM emote_ids WHERE emote_id=ANY(%(emote_ids)s) and guild_id is NULL",
+                parameters={"emote_ids": emote_ids}
+            )
+        return set(emote_id for emote_id, in results)
+
     async def share_hashes(self, emote_id_1: int, emote_id_2: int) -> bool:
         await self.cur.execute(
             "select 1 from emote_ids where emote_hash=(select emote_hash from emote_ids where emote_id = %(emote_id_1)s) and emote_id = %(emote_id_2)s",
