@@ -26,6 +26,13 @@ class PersonasMixin(_PostgresConnection):
                 personas.sort(key=lambda p: p[1] == name, reverse=True)
             return Persona(*personas[0])
 
+    async def persona_exists(self, user_id: int, short_name: str) -> bool:
+        await self.cur.execute(
+            "SELECT 1 FROM personas WHERE user_id=%(user_id)s and short_name=%(name)s",
+            parameters={"user_id": user_id, "name": short_name}
+        )
+        return bool(await self.cur.fetchall())
+
 
     async def create_persona(self, persona: Persona):
         await self.cur.execute(
