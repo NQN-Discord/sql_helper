@@ -42,7 +42,7 @@ class EmojisMixin(_PostgresConnection):
 
     async def is_emote_blocked(self, emote_id: int) -> bool:
         await self.cur.execute(
-            "SELECT 1 FROM emote_ids WHERE emote_id=%(emote_id)s and (has_roles=true or manual_block=true)",
+            "SELECT 1 FROM emote_ids WHERE emote_id=%(emote_id)s and (has_roles=true or manual_block=true) LIMIT 1",
             parameters={"emote_id": emote_id}
         )
         results = await self.cur.fetchall()
@@ -50,7 +50,7 @@ class EmojisMixin(_PostgresConnection):
 
     async def is_emote_usable(self, emote_id: int) -> bool:
         await self.cur.execute(
-            "SELECT 1 FROM emote_ids WHERE emote_id=%(emote_id)s and has_roles=false and manual_block=false and usable=true",
+            "SELECT 1 FROM emote_ids WHERE emote_id=%(emote_id)s and has_roles=false and manual_block=false and usable=true LIMIT 1",
             parameters={"emote_id": emote_id}
         )
         results = await self.cur.fetchall()
@@ -71,7 +71,7 @@ class EmojisMixin(_PostgresConnection):
 
     async def share_hashes(self, emote_id_1: int, emote_id_2: int) -> bool:
         await self.cur.execute(
-            "select 1 from emote_ids where emote_hash=(select emote_hash from emote_ids where emote_id = %(emote_id_1)s) and emote_id = %(emote_id_2)s",
+            "select 1 from emote_ids where emote_hash=(select emote_hash from emote_ids where emote_id = %(emote_id_1)s) and emote_id = %(emote_id_2)s LIMIT 1",
             parameters={"emote_id_1": emote_id_1, "emote_id_2": emote_id_2}
         )
         results = await self.cur.fetchall()

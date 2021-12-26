@@ -6,7 +6,7 @@ from .._connection import _PostgresConnection
 class EmojiHashesMixin(_PostgresConnection):
     async def is_emote_hash_filtered(self, emote_hash: str) -> bool:
         await self.cur.execute(
-            "SELECT 1 FROM emote_hashes WHERE emote_hash=%(emote_hash)s and filtered=true",
+            "SELECT 1 FROM emote_hashes WHERE emote_hash=%(emote_hash)s and filtered=true LIMIT 1",
             parameters={"emote_hash": emote_hash}
         )
         results = await self.cur.fetchall()

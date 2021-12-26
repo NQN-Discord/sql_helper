@@ -82,7 +82,7 @@ class PacksMixin(_PostgresConnection):
 
     async def in_pack(self, *, user_id: int, guild_id: int) -> bool:
         await self.cur.execute(
-            "SELECT 1 FROM user_packs WHERE user_id=%(user_id)s AND guild_id=%(guild_id)s",
+            "SELECT 1 FROM user_packs WHERE user_id=%(user_id)s AND guild_id=%(guild_id)s LIMIT 1",
             parameters={"user_id": user_id, "guild_id": guild_id}
         )
         return bool(await self.cur.fetchall())

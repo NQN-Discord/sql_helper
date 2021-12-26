@@ -28,7 +28,7 @@ class PersonasMixin(_PostgresConnection):
 
     async def persona_exists(self, user_id: int, short_name: str) -> bool:
         await self.cur.execute(
-            "SELECT 1 FROM personas WHERE user_id=%(user_id)s and short_name=%(name)s",
+            "SELECT 1 FROM personas WHERE user_id=%(user_id)s and short_name=%(name)s LIMIT 1",
             parameters={"user_id": user_id, "name": short_name}
         )
         return bool(await self.cur.fetchall())
