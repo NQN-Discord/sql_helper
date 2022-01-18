@@ -6,7 +6,9 @@ from .mixins import *
 
 
 class PostgresConnection(
+    AliasesMixin,
     EmojisMixin,
+    EmojiHashesMixin,
     EmojisUsedMixin,
     GuildMembersMixin,
     GuildMessagesMixin,
@@ -15,7 +17,6 @@ class PostgresConnection(
     PacksMixin,
     PersonasMixin,
     PremiumMixin,
-    EmojiHashesMixin
 ):
     pass
 
