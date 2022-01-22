@@ -8,14 +8,14 @@ from .._connection import _PostgresConnection
 class AliasesMixin(_PostgresConnection):
     async def get_user_aliases(self, user_id: int) -> List[PartialEmoji]:
         await self.cur.execute(
-            "SELECT animated, emote_id, \"name\" FROM aliases WHERE user_id=%(user_id)s",
+            "SELECT animated, \"name\", emote_id FROM aliases WHERE user_id=%(user_id)s",
             parameters={"user_id": user_id}
         )
         return await _get_emotes(self.cur)
 
     async def get_user_alias_name(self, user_id: int, name: str) -> Optional[PartialEmoji]:
         await self.cur.execute(
-            "SELECT animated, emote_id, \"name\" FROM aliases WHERE user_id=%(user_id)s and \"name\"=%(name)",
+            "SELECT animated, \"name\", emote_id FROM aliases WHERE user_id=%(user_id)s and \"name\"=%(name)",
             parameters={"user_id": user_id, "name": name}
         )
         return _list_to_optional(await _get_emotes(self.cur))
