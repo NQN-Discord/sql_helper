@@ -43,6 +43,8 @@ class AliasesMixin(_PostgresConnection):
         return bool(await self.cur.fetchall())
 
     async def set_user_aliases(self, user_id: int, aliases: List[PartialEmoji]):
+        if not aliases:
+            return
         names = []
         ids = []
         animateds = []
