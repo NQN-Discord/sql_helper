@@ -22,10 +22,12 @@ class AliasesMixin(_PostgresConnection):
 
     async def get_user_alias_name(self, user_id: int, name: str) -> Optional[PartialEmoji]:
         await self.cur.execute(
-            "SELECT animated, \"name\", emote_id FROM aliases WHERE user_id=%(user_id)s and \"name\"=%(name)s",
-            parameters={"user_id": user_id, "name": name}
+            "SELECT animated, \"name\", emote_id FROM aliases WHERE user_id=%(user_id)s and lower(\"name\")=%(name)s",
+            parameters={"user_id": user_id, "name": name.lower()}
         )
-        return _list_to_optional(await _get_emotes(self.cur))
+        emotes = await _get_emotes(self.cur)
+        if emotes:
+            return next((emote for emote in emotes if emote.name == name), emotes[0])
 
     async def count_user_aliases(self, user_id: int) -> int:
         await self.cur.execute(
@@ -95,8 +97,3 @@ async def _get_emotes(cur) -> List[PartialEmoji]:
         PartialEmoji(animated=animated, name=name.rstrip(" "), id=id)
         for animated, name, id in results
     ]
-
-
-def _list_to_optional(lst: List) -> Optional:
-    if lst:
-        return lst[0]
