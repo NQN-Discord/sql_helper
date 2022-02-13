@@ -21,3 +21,4 @@ class GuildSettings:
     enable_user_content: bool = True
     enable_personas: bool = False
     enable_dashboard_posting: bool = True
+    enable_phish_detection: bool = True
