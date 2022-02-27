@@ -1,4 +1,4 @@
-from typing import Union, Optional, List, Tuple
+from typing import Union, Optional, List, Tuple, Set
 from discord import Guild
 from dataclasses import fields
 from ..guild_settings import GuildSettings
@@ -15,12 +15,11 @@ class GuildSettingsMixin(_PostgresConnection):
         )
         return [gid for gid, in await self.cur.fetchall()]
 
-    @async_list
-    async def personas_guilds(self) -> AsyncList:
+    async def personas_guilds(self) -> Set[str]:
         await self.cur.execute(
             "SELECT guild_id FROM guild_settings WHERE enable_personas=true"
         )
-        return [gid for gid, in await self.cur.fetchall()]
+        return {str(gid) for gid, in await self.cur.fetchall()}
 
     @async_list
     async def guild_prefixes(self) -> AsyncList:
