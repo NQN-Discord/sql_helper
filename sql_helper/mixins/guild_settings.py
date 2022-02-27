@@ -23,6 +23,13 @@ class GuildSettingsMixin(_PostgresConnection):
         return [gid for gid, in await self.cur.fetchall()]
 
     @async_list
+    async def guild_prefixes(self) -> AsyncList:
+        await self.cur.execute(
+            "SELECT guild_id, prefix FROM guild_settings"
+        )
+        return await self.cur.fetchall()
+
+    @async_list
     async def guild_settings(self) -> AsyncList:
         await self.cur.execute(
             "SELECT guild_id, prefix, locale, max_guildwide_emotes, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, enable_masked_links, is_alias_server, enable_pings, enable_user_content, enable_personas, enable_dashboard_posting, enable_phish_detection FROM guild_settings"
