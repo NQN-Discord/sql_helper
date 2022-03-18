@@ -40,6 +40,15 @@ class PacksMixin(_PostgresConnection):
         packs = await self.cur.fetchall()
         return [Pack(*p) for p in packs]
 
+    @async_list
+    async def get_packs_with_emoji(self, emote_id: int) -> AsyncList:
+        await self.cur.execute(
+            "select packs.pack_name from emote_ids join packs on emote_ids.guild_id=packs.guild_id where emote_ids.emote_hash=(SELECT emote_hash FROM emote_ids WHERE emote_id=%(emote_id)s) limit 100",
+            parameters={"emote_id": emote_id}
+        )
+        packs = await self.cur.fetchall()
+        return [guild_id for guild_id, in packs]
+
     async def user_pack_count(self, user_id: Union[Object, int]) -> int:
         if not isinstance(user_id, int):
             user_id = user_id.id
