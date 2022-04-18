@@ -31,8 +31,9 @@ class AliasesMixin(_PostgresConnection):
 
     async def get_user_alias_name_with_guild(self, user_id: int, name: str, guild_id: int) -> Optional[PartialEmoji]:
         # Get an alias, but exclude where the current guild has has_roles set on the alias you're trying to use
+        # Left join here, as if it's not in the main database we still want to be able to use it as it's obviously not blocked
         await self.cur.execute(
-            "SELECT aliases.animated, aliases.\"name\", aliases.emote_id from aliases join emote_ids on aliases.emote_id=emote_ids.emote_id where user_id=%(user_id)s and lower(aliases.\"name\")=%(name)s and "
+            "SELECT aliases.animated, aliases.\"name\", aliases.emote_id from aliases left join emote_ids on aliases.emote_id=emote_ids.emote_id where user_id=%(user_id)s and lower(aliases.\"name\")=%(name)s and "
             "emote_ids.emote_hash not in (select emote_hash from emote_ids where guild_id=%(guild_id)s and has_roles=true)",
             parameters={"user_id": user_id, "name": name.lower(), "guild_id": guild_id}
         )
