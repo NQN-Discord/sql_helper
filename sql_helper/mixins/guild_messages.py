@@ -79,7 +79,7 @@ class GuildMessagesMixin(_PostgresConnection):
             offset: Optional[int] = None,
             no_results: int
     ) -> List[GuildMessage]:
-        await self._get_guild_message("guild_id, channel_id, message_id, user_id, content", "ORDER BY message_id DESC", message_id, guild_id, channel_id, user_id, offset, no_results)
+        await self._get_guild_message("guild_id, channel_id, message_id, user_id", "ORDER BY message_id DESC", message_id, guild_id, channel_id, user_id, offset, no_results)
         results = await self.cur.fetchall()
         return [GuildMessage(*i) for i in results]
 

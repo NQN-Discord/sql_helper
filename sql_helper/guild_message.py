@@ -1,3 +1,10 @@
-from collections import namedtuple
+from dataclasses import dataclass
 
-GuildMessage = namedtuple("GuildMessage", ["guild_id", "channel_id", "message_id", "user_id", "content"])
+
+@dataclass()
+class GuildMessage:
+    guild_id: int
+    channel_id: int
+    message_id: int
+    user_id: int
+    content: str = "Unknown"
