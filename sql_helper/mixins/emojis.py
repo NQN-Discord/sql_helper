@@ -101,7 +101,7 @@ class EmojisMixin(_PostgresConnection):
 
     async def set_emote_perceptual_data(self, emote_id: int, guild_id: int, emote_hash: str, emote_sha: str, animated: bool, usable: bool, name: Optional[str], has_roles: bool):
         await self.cur.execute(
-            "INSERT INTO emote_ids (emote_id, emote_hash, usable, animated, emote_sha, guild_id, name, has_roles) VALUES (%(emote_id)s, %(emote_hash)s, %(usable)s, %(animated)s, %(emote_sha)s, %(guild_id)s, %(name)s, %(has_roles)s) ON CONFLICT (emote_id) DO UPDATE SET name=%(name)s, has_roles=%(has_roles)s",
+            "INSERT INTO emote_ids (emote_id, emote_hash, usable, animated, emote_sha, guild_id, name, has_roles) VALUES (%(emote_id)s, %(emote_hash)s, %(usable)s, %(animated)s, %(emote_sha)s, %(guild_id)s, %(name)s, %(has_roles)s) ON CONFLICT (emote_id) DO UPDATE SET name=%(name)s, has_roles=%(has_roles)s, guild_id=coalesce(emote_ids.guild_id, %(guild_id)s)",
             parameters={
                 "emote_id": emote_id,
                 "emote_hash": emote_hash,
