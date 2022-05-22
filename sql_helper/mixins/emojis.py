@@ -135,7 +135,7 @@ class EmojisMixin(_PostgresConnection):
         await self.cur.execute(
             'UPDATE emote_ids SET score=((score::int)+1)::"char" '
             'where emote_id=ANY(%(emote_ids)s) and guild_id=%(guild_id)s and '
-            'trunc(random() * (2<<(((score::int)>>5)+3))) = 0',
+            'trunc(random() * (2<<(((score::int)>>4)+7))) = 0',
             parameters={"emote_ids": emote_ids, "guild_id": guild_id}
         )
 
