@@ -220,15 +220,17 @@ class EmojisMixin(_PostgresConnection):
             parameters={"user_id": user_id}
         )
 
-    async def get_guild_emotes(self, guild_id: int) -> List[Emoji]:
+    async def get_guild_emotes(self, guild_id: int, *, order_by_score: bool = False) -> List[Emoji]:
         return await self._get_emojis(
             "guild_id=%(guild_id)s",
+            "order by score desc" if order_by_score else "",
             parameters={"guild_id": guild_id}
         )
 
-    async def get_mutual_guild_emotes(self, user_id: int) -> List[Emoji]:
+    async def get_mutual_guild_emotes(self, user_id: int, *, order_by_score: bool = False) -> List[Emoji]:
         return await self._get_emojis(
             "guild_id in (select guild_id from members where user_id=%(user_id)s)",
+            "order by score desc" if order_by_score else "",
             parameters={"user_id": user_id}
         )
 
@@ -282,9 +284,9 @@ class EmojisMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         return [self._get_emoji(SQLEmoji(*emote)) for emote in results]
 
-    async def _get_emojis(self, query_where, parameters) -> List[Emoji]:
+    async def _get_emojis(self, query_where, query_suffix: str = "", *, parameters) -> List[Emoji]:
         await self.cur.execute(
-            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where {query_where} and usable=true and has_roles=false and manual_block=false",
+            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where {query_where} and usable=true and has_roles=false and manual_block=false {query_suffix}",
             parameters=parameters
         )
         results = await self.cur.fetchall()
@@ -293,13 +295,13 @@ class EmojisMixin(_PostgresConnection):
 
     async def _case_insensitive_get_emote(self, query_where, emote_name: str, parameters) -> Optional[Emoji]:
         await self.cur.execute(
-            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where {query_where} and lower(trim(name))=lower(%(emote_name)s) and usable=true and has_roles=false and manual_block=false",
+            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where {query_where} and lower(trim(name))=lower(%(emote_name)s) and usable=true and has_roles=false and manual_block=false LIMIT 1",
             parameters={**parameters, "emote_name": emote_name}
         )
         emote = await self._get_cur_emoji()
         if emote and emote.name != emote_name:
             await self.cur.execute(
-                f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where {query_where} and trim(name)=%(emote_name)s and usable=true and has_roles=false and manual_block=false",
+                f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where {query_where} and trim(name)=%(emote_name)s and usable=true and has_roles=false and manual_block=false LIMIT 1",
                 parameters={**parameters, "emote_name": emote_name}
             )
             emote = await self._get_cur_emoji() or emote
