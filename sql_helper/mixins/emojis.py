@@ -1,4 +1,4 @@
-from typing import Dict, Optional, List, Set
+from typing import Dict, Optional, List, Set, Tuple
 from discord import Emoji
 from ..emoji import SQLEmoji, EmojiCounts
 
@@ -127,16 +127,16 @@ class EmojisMixin(_PostgresConnection):
                 parameters={"emote_id": emote_id, "guild_id": guild_id, "usable": usable, "name": name, "has_roles": has_roles}
             )
 
-    async def increment_guild_emote_score(self, guild_id: int, emote_ids: List[int]):
+    async def increment_guild_emote_score(self, emoji_guild_ids: List[Tuple[int, int]]):
         # Make sure the formula for the bitshifting gives -1, as 2 >> -1 = 0, which is what we want if we want to give
         # the first numbers 100% chance
         # select (-128)>>5+3; -> -1
         # select (-128)>>4+7 -> -1;
         await self.cur.execute(
             'UPDATE emote_ids SET score=((score::int)+1)::"char" '
-            'where emote_id=ANY(%(emote_ids)s) and guild_id=%(guild_id)s and '
-            'trunc(random() * (2<<(((score::int)>>4)+7))) = 0',
-            parameters={"emote_ids": emote_ids, "guild_id": guild_id}
+            'where (guild_id, emote_id) in (SELECT * FROM unnest(%(emoji_guild_ids)s) as f(guild_id bigint, emote_id bigint)) and '
+            'trunc(random() * (2<<(((score::int)>>5)+3))) = 0',
+            parameters={"emoji_guild_ids": emoji_guild_ids}
         )
 
     async def clear_guild_emotes(self, guild_id: int):
