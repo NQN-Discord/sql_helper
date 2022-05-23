@@ -133,10 +133,19 @@ class EmojisMixin(_PostgresConnection):
         # select (-128)>>5+3; -> -1
         # select (-128)>>4+7 -> -1;
         await self.cur.execute(
-            'UPDATE emote_ids SET score=((score::int)+1)::"char" '
+            'UPDATE emote_ids SET score=((score::int) + 1)::"char" '
             'where (guild_id, emote_id) in (SELECT * FROM unnest(%(emoji_guild_ids)s) as f(guild_id bigint, emote_id bigint)) and '
-            'trunc(random() * (2<<(((score::int)>>5)+3))) = 0',
+            'trunc(random() * (2<<(((score::int)>>5)+3))) = 0 and '
+            'score::int != 127',  # POSITIVE 127 is max number here as signed
             parameters={"emoji_guild_ids": emoji_guild_ids}
+        )
+
+    async def decay_guild_emote_score(self):
+        await self.cur.execute(
+            'update emote_ids set score=(score::int - 1)::"char" '
+            'where guild_id in (select guild_id from emote_ids where score::int > -28 and guild_id is not null) and '
+            'score::int != -128',  # -128 is smallest number
+            parameters={}
         )
 
     async def clear_guild_emotes(self, guild_id: int):
@@ -182,7 +191,6 @@ class EmojisMixin(_PostgresConnection):
         )
         results = await self.cur.fetchall()
         return {guild_id for guild_id, in results}
-
 
     async def get_pack_emote(self, pack_name: str, emote_name: str) -> Optional[Emoji]:
         return await self._case_insensitive_get_emote(
