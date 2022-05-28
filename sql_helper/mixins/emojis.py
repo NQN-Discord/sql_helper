@@ -1,4 +1,5 @@
 from typing import Dict, Optional, List, Set, Tuple
+from collections import Counter
 from discord import Emoji
 from ..emoji import SQLEmoji, EmojiCounts
 
@@ -147,6 +148,14 @@ class EmojisMixin(_PostgresConnection):
             'score::int != -128',  # -128 is smallest number
             parameters={}
         )
+
+    async def guild_emote_scores(self, guild_id: int) -> Counter:
+        await self.cur.execute(
+            'select emote_id, score::int + 128 from emote_ids where guild_id=%(guild_id)s order by score desc',
+            parameters={"guild_id": guild_id}
+        )
+        emote_scores = await self.cur.fetchall()
+        return Counter({k: v for k, v in emote_scores})
 
     async def clear_guild_emotes(self, guild_id: int):
         await self.cur.execute(
