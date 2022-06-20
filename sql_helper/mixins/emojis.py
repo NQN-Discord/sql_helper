@@ -41,6 +41,14 @@ class EmojisMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         return [emote_id for emote_id, in results]
 
+    async def alternative_emote_names(self, emote_id: int) -> List[str]:
+        await self.cur.execute(
+            """select trim("name") as name from (select "name", count(*) from emote_ids where emote_hash=(select emote_hash from emote_ids where emote_id=%(emote_id)s) group by "name" order by count desc) a where count > 10 and lower("name") not like 'emoji%%' limit 10""",
+            parameters={"emote_id": emote_id}
+        )
+        results = await self.cur.fetchall()
+        return [name for name, in results]
+
     async def is_emote_blocked(self, emote_id: int) -> bool:
         await self.cur.execute(
             "SELECT 1 FROM emote_ids WHERE emote_id=%(emote_id)s and (has_roles=true or manual_block=true) LIMIT 1",
@@ -157,6 +165,24 @@ class EmojisMixin(_PostgresConnection):
         emote_scores = await self.cur.fetchall()
         return Counter({k: v for k, v in emote_scores})
 
+    async def emote_score(self, emote_id: int) -> int:
+        await self.cur.execute(
+            'select score::int + 128 from emote_ids where emote_id=%(emote_id)s',
+            parameters={"emote_id": emote_id}
+        )
+        emote_score = await self.cur.fetchall()
+        if not emote_score:
+            return 0
+        return emote_score[0][0]
+
+    async def daily_scores_for_emotes(self, emote_id: int) -> int:
+        await self.cur.execute(
+            "select score::int + 128 as score from emote_ids where emote_hash=(select emote_hash from emote_ids where emote_id=%(emote_id)s) and score::int > -28",
+            parameters={"emote_id": emote_id}
+        )
+        emote_scores = await self.cur.fetchall()
+        return [score for score, in emote_scores]
+
     async def clear_guild_emotes(self, guild_id: int):
         await self.cur.execute(
             "UPDATE emote_ids SET guild_id=null where guild_id=%(guild_id)s",
@@ -251,9 +277,10 @@ class EmojisMixin(_PostgresConnection):
             parameters={"user_id": user_id}
         )
 
-    async def get_guilds_emotes(self, guild_ids: List[int]) -> List[Emoji]:
+    async def get_guilds_emotes(self, guild_ids: List[int], *, order_by_score: bool = False) -> List[Emoji]:
         return await self._get_emojis(
             "guild_id = ANY(%(guild_ids)s)",
+            "order by score desc" if order_by_score else "",
             parameters={"guild_ids": guild_ids}
         )
 
