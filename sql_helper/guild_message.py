@@ -7,4 +7,3 @@ class GuildMessage:
     channel_id: int
     message_id: int
     user_id: int
-    content: str = "Unknown"
