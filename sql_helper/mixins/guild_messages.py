@@ -110,5 +110,10 @@ class GuildMessagesMixin(_PostgresConnection):
                 f"SELECT {select} FROM guild_messages WHERE guild_id=%(guild_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
                 parameters={"guild_id": guild_id, "limit": no_results, "offset": offset}
             )
+        elif user_id:
+            await self.cur.execute(
+                f"SELECT {select} FROM guild_messages WHERE user_id=%(user_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
+                parameters={"user_id": user_id, "limit": no_results, "offset": offset}
+            )
         else:
             raise NotImplementedError(f"Invalid combination of requests: message_id={message_id} guild_id={guild_id} channel_id={channel_id} user_id={user_id}")
