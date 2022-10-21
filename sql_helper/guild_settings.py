@@ -1,5 +1,31 @@
 from typing import Optional
 from dataclasses import dataclass
+from enum import Flag, auto
+
+
+class SettingsFlags(Flag):
+    stickers = auto()
+    nitro = auto()
+    replies = auto()
+    masked_links = auto()
+    alias_server = auto()
+    pings = auto()
+    user_content = auto()
+    personas = auto()
+    dashboard_posting = auto()
+    phish_detection = auto()
+
+
+DEFAULTS = (
+    SettingsFlags.stickers |
+    SettingsFlags.nitro |
+    SettingsFlags.replies |
+    SettingsFlags.masked_links |
+    SettingsFlags.pings |
+    SettingsFlags.user_content |
+    SettingsFlags.dashboard_posting |
+    SettingsFlags.phish_detection
+)
 
 
 @dataclass()

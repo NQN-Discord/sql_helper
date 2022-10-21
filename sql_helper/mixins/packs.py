@@ -106,10 +106,6 @@ class PacksMixin(_PostgresConnection):
 
     async def delete_pack(self, guild_id: int):
         await self.cur.execute(
-            "DELETE FROM user_packs WHERE guild_id=%(guild_id)s",
-            parameters={"guild_id": guild_id}
-        )
-        await self.cur.execute(
             "DELETE FROM packs WHERE guild_id=%(guild_id)s",
             parameters={"guild_id": guild_id}
         )
