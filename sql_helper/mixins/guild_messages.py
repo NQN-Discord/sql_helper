@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Iterable, Dict, Tuple
 from ..guild_message import GuildMessage
 
 from ..async_list import async_list
@@ -6,21 +6,36 @@ from .._connection import _PostgresConnection
 
 
 class GuildMessagesMixin(_PostgresConnection):
-
     async def add_guild_message(self, *, message_id: int, guild_id: int, channel_id: int, user_id: int):
-        try:
-            await self.cur.execute(
-                "INSERT INTO guild_messages (guild_id, channel_id, message_id, user_id) VALUES (%(guild_id)s, %(channel_id)s, %(message_id)s, %(user_id)s) ON CONFLICT ON CONSTRAINT guild_messages_pk DO NOTHING",
-                parameters={
-                    "guild_id": guild_id,
-                    "channel_id": channel_id,
-                    "message_id": message_id,
-                    "user_id": user_id
-                }
-            )
-        except ValueError:
-            # A string literal cannot contain NUL (0x00) characters.
-            pass
+        await self.cur.execute(
+            "INSERT INTO guild_messages (guild_id, channel_id, message_id, user_id) VALUES (%(guild_id)s, %(channel_id)s, %(message_id)s, %(user_id)s) ON CONFLICT ON CONSTRAINT guild_messages_pk DO NOTHING",
+            parameters={
+                "guild_id": guild_id,
+                "channel_id": channel_id,
+                "message_id": message_id,
+                "user_id": user_id
+            }
+        )
+
+    async def add_guild_message_bulk(self, messages: Iterable[GuildMessage]):
+        guilds = []
+        channels = []
+        message_ids = []
+        users = []
+        for i in messages:
+            guilds.append(i.guild_id)
+            channels.append(i.channel_id)
+            message_ids.append(i.message_id)
+            users.append(i.user_id)
+        await self.cur.execute(
+            "INSERT INTO guild_messages (guild_id, channel_id, message_id, user_id) VALUES (unnest(%(guild_id)s), unnest(%(channel_id)s), unnest(%(message_id)s), unnest(%(user_id)s))",
+            parameters={
+                "guild_id": guilds,
+                "channel_id": channels,
+                "message_id": message_ids,
+                "user_id": users,
+            }
+        )
 
     async def delete_guild_message(self, *, message_id: int):
         await self.cur.execute(
@@ -44,6 +59,14 @@ class GuildMessagesMixin(_PostgresConnection):
         await self._get_guild_message("guild_id, channel_id, message_id, user_id", "ORDER BY message_id DESC", message_id, guild_id, channel_id, user_id, offset, no_results)
         results = await self.cur.fetchall()
         return [GuildMessage(*i) for i in results]
+
+    @async_list
+    async def get_guild_message_ids(self, guild_id: int, message_ids: List[int]) -> List[Tuple[int, int]]:
+        await self.cur.execute(
+            f"SELECT message_id, user_id FROM guild_messages WHERE guild_id=%(guild_id)s and message_id=ANY(%(message_ids)s)",
+            parameters={"guild_id": guild_id, "message_ids": message_ids}
+        )
+        return await self.cur.fetchall()
 
     async def get_guild_message_count(
             self,
