@@ -8,6 +8,7 @@ from .mixins import *
 class PostgresConnection(
     AliasesMixin,
     BlockedEmojisMixin,
+    CommandMessagesMixin,
     EmojisMixin,
     EmojiHashesMixin,
     EmojisUsedMixin,

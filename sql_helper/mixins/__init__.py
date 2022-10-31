@@ -10,3 +10,4 @@ from .emojis_used import EmojisUsedMixin
 from .emoji_hashes import EmojiHashesMixin
 from .aliases import AliasesMixin
 from .blocked_emojis import BlockedEmojisMixin
+from .command_messages import CommandMessagesMixin
