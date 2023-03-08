@@ -86,7 +86,7 @@ class EmojisMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         return bool(results)
 
-    async def get_emote_like(self, emote_id: int) -> Optional[Emoji]:
+    async def get_emote_like(self, emote_id: int, *, require_guild: bool = True, force_change: bool = False) -> Optional[Emoji]:
         # Get the emoji we're searching for
         await self.cur.execute(
             "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles FROM emote_ids WHERE emote_id=%(emote_id)s LIMIT 1",
@@ -96,17 +96,32 @@ class EmojisMixin(_PostgresConnection):
         if not results:
             return None
         emote = SQLEmoji(*results[0])
-        if not (emote.guild_id and emote.usable):
-            # If we can't use this one, find one like it
+        if force_change:
+            return await self._get_emote_like(emote, require_guild)
+        elif emote.usable:
+            if emote.guild_id:
+                return self._get_emoji(emote)
+            elif require_guild:
+                return await self._get_emote_like(emote, require_guild)
+            else:
+                return self._get_emoji(emote)
+        else:
+            return await self._get_emote_like(emote, require_guild)
+
+    async def _get_emote_like(self, emote: SQLEmoji, require_guild: bool) -> Optional[SQLEmoji]:
+        # At this point, we can't use the original emoji. Let's look for a similar one
+        if require_guild:
             await self.cur.execute(
                 "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles FROM emote_ids WHERE emote_hash=%(emote_hash)s and guild_id is not null and usable=true LIMIT 1",
                 parameters={"emote_hash": emote.emote_hash}
             )
-            results = await self.cur.fetchall()
-            if not results:
-                return None
-            emote = SQLEmoji(*results[0])
-        return self._get_emoji(emote)
+        else:
+            await self.cur.execute(
+                "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles FROM emote_ids WHERE emote_hash=%(emote_hash)s and usable=true LIMIT 1",
+                parameters={"emote_hash": emote.emote_hash}
+            )
+        return await self._get_cur_emoji()
+
 
     async def set_emote_perceptual_data(self, emote_id: int, guild_id: int, emote_hash: str, emote_sha: str, animated: bool, usable: bool, name: Optional[str], has_roles: bool):
         await self.cur.execute(
