@@ -34,6 +34,14 @@ class PersonasMixin(_PostgresConnection):
                 personas.sort(key=lambda p: p[1] == name, reverse=True)
             return Persona(*personas[0])
 
+    async def count_personas(self, user_id: int) -> int:
+        await self.cur.execute(
+            "select count(*) from personas where user_id=%(user_id)s",
+            parameters={"user_id": user_id}
+        )
+        results = await self.cur.fetchall()
+        return results[0][0]
+
     async def persona_exists(self, user_id: int, short_name: str) -> bool:
         await self.cur.execute(
             "SELECT 1 FROM personas WHERE user_id=%(user_id)s and short_name=%(name)s LIMIT 1",
@@ -69,4 +77,10 @@ class PersonasMixin(_PostgresConnection):
         await self.cur.execute(
             "DELETE FROM personas WHERE user_id=%(user_id)s and short_name=%(short_name)s",
             parameters={"user_id": user_id, "short_name": short_name}
+        )
+
+    async def delete_all_personas(self, user_id: int):
+        await self.cur.execute(
+            "DELETE FROM personas WHERE user_id=%(user_id)s",
+            parameters={"user_id": user_id}
         )
