@@ -7,7 +7,6 @@ class SettingsFlags(Flag):
     stickers = auto()
     nitro = auto()
     replies = auto()
-    masked_links = auto()
     alias_server = auto()
     pings = auto()
     user_content = auto()
@@ -20,7 +19,6 @@ DEFAULTS = (
     SettingsFlags.stickers |
     SettingsFlags.nitro |
     SettingsFlags.replies |
-    SettingsFlags.masked_links |
     SettingsFlags.pings |
     SettingsFlags.user_content |
     SettingsFlags.dashboard_posting |
@@ -41,7 +39,6 @@ class GuildSettings:
     enable_stickers: bool = True
     enable_nitro: bool = True
     enable_replies: bool = True
-    enable_masked_links: bool = True
     is_alias_server: bool = False
     enable_pings: bool = True
     enable_user_content: bool = True
