@@ -1,12 +1,26 @@
 from typing import Optional
 
 from mock import MagicMock, AsyncMock
+from hypothesis.strategies import builds, integers, booleans, text
 import pytest
 
 from sql_helper import SQLEmoji
 from sql_helper.connection import PostgresConnection
 
-__all__ = ["get_guild", "get_emoji", "postgres", "get_sql_emoji"]
+__all__ = ["get_guild", "get_emoji", "postgres", "get_sql_emoji", "sqlemoji_strategy"]
+
+
+sqlemoji_strategy = lambda emote_id=integers(), name=text(), emote_hash=text(): builds(
+    SQLEmoji,
+    emote_id=emote_id,
+    emote_hash=emote_hash,
+    usable=booleans(),
+    animated=booleans(),
+    emote_sha=text(),
+    guild_id=integers(),
+    name=name,
+    has_roles=booleans()
+)
 
 
 @pytest.fixture

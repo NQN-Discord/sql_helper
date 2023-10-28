@@ -86,7 +86,7 @@ class EmojisMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         return bool(results)
 
-    async def get_emote_like(self, emote_id: int, *, require_guild: bool = True, force_change: bool = False) -> Optional[Emoji]:
+    async def get_emote_like(self, emote_id: int, *, require_guild: bool = True) -> Optional[Emoji]:
         # Get the emoji we're searching for
         await self.cur.execute(
             "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles FROM emote_ids WHERE emote_id=%(emote_id)s LIMIT 1",
@@ -96,17 +96,15 @@ class EmojisMixin(_PostgresConnection):
         if not results:
             return None
         emote = SQLEmoji(*results[0])
-        if force_change:
-            return await self._get_emote_like(emote, require_guild)
-        elif emote.usable:
+        if emote.usable:
             if emote.guild_id:
                 return self._get_emoji(emote)
             elif require_guild:
-                return await self._get_emote_like(emote, require_guild)
+                return self._get_emoji(await self._get_emote_like(emote, require_guild))
             else:
                 return self._get_emoji(emote)
         else:
-            return await self._get_emote_like(emote, require_guild)
+            return self._get_emoji(await self._get_emote_like(emote, require_guild))
 
     async def _get_emote_like(self, emote: SQLEmoji, require_guild: bool) -> Optional[SQLEmoji]:
         # At this point, we can't use the original emoji. Let's look for a similar one
@@ -120,8 +118,9 @@ class EmojisMixin(_PostgresConnection):
                 "SELECT emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles FROM emote_ids WHERE emote_hash=%(emote_hash)s and usable=true LIMIT 1",
                 parameters={"emote_hash": emote.emote_hash}
             )
-        return await self._get_cur_emoji()
-
+        results = await self.cur.fetchall()
+        if results:
+            return SQLEmoji(*results[0])
 
     async def set_emote_perceptual_data(self, emote_id: int, guild_id: int, emote_hash: str, emote_sha: str, animated: bool, usable: bool, name: Optional[str], has_roles: bool):
         await self.cur.execute(
@@ -353,18 +352,54 @@ class EmojisMixin(_PostgresConnection):
         return [emote for emote in emotes if emote]
 
     async def _case_insensitive_get_emote(self, query_where, emote_name: str, parameters) -> Optional[Emoji]:
+        case_insensitive = await self._get_emote_with_where(
+            f"{query_where} and lower(trim(name))=lower(%(emote_name)s)",
+            emote_name,
+            parameters
+        )
+        # If the least sensitive query didn't get us anything, we're done.
+        if case_insensitive is None:
+            return
+        usable_case_insensitive = case_insensitive if case_insensitive.usable else None
+
+        # First, try case-sensitive
+        if case_insensitive.name == emote_name:
+            case_sensitive = case_insensitive
+        else:
+            case_sensitive = await self._get_emote_with_where(
+                f"{query_where} and trim(name)=%(emote_name)s",
+                emote_name,
+                parameters
+            )
+        if case_sensitive is not None:
+            assert case_sensitive.name == emote_name
+            if case_sensitive.usable:
+                return self._get_emoji(case_sensitive)
+            # See if we can find a copy that's usable!
+            case_sensitive = await self._get_emote_like(case_sensitive, require_guild=True)
+            if case_sensitive is not None:
+                return self._get_emoji(case_sensitive)
+        # At this point, give up on case sensitivity. Let's see if we can find something usable that's insensitive.
+        if usable_case_insensitive is None:
+            usable_case_insensitive = await self._get_emote_with_where(
+                f"{query_where} and lower(trim(name))=lower(%(emote_name)s) and usable=true",
+                emote_name,
+                parameters
+            )
+        if usable_case_insensitive is None:
+            # If not, well we found *something* insensitive earlier
+            usable_case_insensitive = await self._get_emote_like(case_insensitive, require_guild=True)
+        if usable_case_insensitive is not None:
+            return self._get_emoji(usable_case_insensitive)
+
+    async def _get_emote_with_where(self, query_where: str, emote_name: str, parameters) -> Optional[SQLEmoji]:
         await self.cur.execute(
-            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where {query_where} and lower(trim(name))=lower(%(emote_name)s) and usable=true and has_roles=false and manual_block=false LIMIT 1",
+            f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where {query_where} and has_roles=false and manual_block=false LIMIT 1",
             parameters={**parameters, "emote_name": emote_name}
         )
-        emote = await self._get_cur_emoji()
-        if emote and emote.name != emote_name:
-            await self.cur.execute(
-                f"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where {query_where} and trim(name)=%(emote_name)s and usable=true and has_roles=false and manual_block=false LIMIT 1",
-                parameters={**parameters, "emote_name": emote_name}
-            )
-            emote = await self._get_cur_emoji() or emote
-        return emote
+        results = await self.cur.fetchall()
+        if results:
+            return SQLEmoji(*results[0])
 
     async def _get_cur_emoji(self) -> Optional[Emoji]:
         results = await self.cur.fetchall()
@@ -372,3 +407,7 @@ class EmojisMixin(_PostgresConnection):
             return None
         emote = SQLEmoji(*results[0])
         return self._get_emoji(emote)
+
+    def _sql_emoji_to_emoji(self, emote: Optional[SQLEmoji]) -> Optional[Emoji]:
+        if emote is not None:
+            return self._get_emoji(emote)
