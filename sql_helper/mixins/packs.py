@@ -7,12 +7,10 @@ from .._connection import _PostgresConnection
 
 
 class PacksMixin(_PostgresConnection):
-
     @async_list
     async def pack_ids(self):
         await self.cur.execute("SELECT guild_id, pack_name from packs")
         return await self.cur.fetchall()
-
 
     @async_list
     async def all_packs(self):
@@ -26,7 +24,7 @@ class PacksMixin(_PostgresConnection):
             user_id = user_id.id
         await self.cur.execute(
             "SELECT guild_id FROM user_packs WHERE user_id=%(user_id)s",
-            parameters={"user_id": user_id}
+            parameters={"user_id": user_id},
         )
         guilds = await self.cur.fetchall()
         return [g for g, in guilds]
@@ -35,7 +33,7 @@ class PacksMixin(_PostgresConnection):
     async def get_top_packs_by_count(self) -> AsyncList:
         await self.cur.execute(
             "SELECT packs.* FROM (SELECT guild_id, COUNT(*) from user_packs GROUP BY guild_id ORDER BY count DESC LIMIT 25) a JOIN packs on a.guild_id=packs.guild_id",
-            parameters={}
+            parameters={},
         )
         packs = await self.cur.fetchall()
         return [Pack(*p) for p in packs]
@@ -44,7 +42,7 @@ class PacksMixin(_PostgresConnection):
     async def get_packs_with_emoji(self, emote_id: int) -> AsyncList:
         await self.cur.execute(
             "select packs.pack_name from emote_ids join packs on emote_ids.guild_id=packs.guild_id where emote_ids.emote_hash=(SELECT emote_hash FROM emote_ids WHERE emote_id=%(emote_id)s) limit 100",
-            parameters={"emote_id": emote_id}
+            parameters={"emote_id": emote_id},
         )
         packs = await self.cur.fetchall()
         return [guild_id for guild_id, in packs]
@@ -54,7 +52,7 @@ class PacksMixin(_PostgresConnection):
             user_id = user_id.id
         await self.cur.execute(
             "SELECT count(*) FROM user_packs WHERE user_id=%(user_id)s",
-            parameters={"user_id": user_id}
+            parameters={"user_id": user_id},
         )
         results = await self.cur.fetchall()
         return results[0][0]
@@ -65,7 +63,7 @@ class PacksMixin(_PostgresConnection):
             user_id = user_id.id
         await self.cur.execute(
             "SELECT packs.* FROM user_packs JOIN packs on packs.guild_id=user_packs.guild_id where user_id=%(user_id)s",
-            parameters={"user_id": user_id}
+            parameters={"user_id": user_id},
         )
         packs = await self.cur.fetchall()
         return [Pack(*p) for p in packs]
@@ -76,7 +74,7 @@ class PacksMixin(_PostgresConnection):
             guild_id = guild_id.id
         await self.cur.execute(
             "SELECT user_id FROM user_packs WHERE guild_id=%(guild_id)s",
-            parameters={"guild_id": guild_id}
+            parameters={"guild_id": guild_id},
         )
         users = await self.cur.fetchall()
         return [g for g, in users]
@@ -84,22 +82,21 @@ class PacksMixin(_PostgresConnection):
     @async_list
     async def all_pack_sizes(self) -> AsyncList:
         await self.cur.execute(
-            "SELECT guild_id, count(*) FROM user_packs GROUP BY guild_id",
-            parameters={}
+            "SELECT guild_id, count(*) FROM user_packs GROUP BY guild_id", parameters={}
         )
         return await self.cur.fetchall()
 
     async def in_pack(self, *, user_id: int, guild_id: int) -> bool:
         await self.cur.execute(
             "SELECT 1 FROM user_packs WHERE user_id=%(user_id)s AND guild_id=%(guild_id)s LIMIT 1",
-            parameters={"user_id": user_id, "guild_id": guild_id}
+            parameters={"user_id": user_id, "guild_id": guild_id},
         )
         return bool(await self.cur.fetchall())
 
     async def pack_size(self, guild_id: int) -> int:
         await self.cur.execute(
             "SELECT COUNT(*) FROM user_packs WHERE guild_id=%(guild_id)s",
-            parameters={"guild_id": guild_id}
+            parameters={"guild_id": guild_id},
         )
         users = await self.cur.fetchall()
         return users[0][0]
@@ -107,7 +104,7 @@ class PacksMixin(_PostgresConnection):
     async def delete_pack(self, guild_id: int):
         await self.cur.execute(
             "DELETE FROM packs WHERE guild_id=%(guild_id)s",
-            parameters={"guild_id": guild_id}
+            parameters={"guild_id": guild_id},
         )
 
     async def create_update_pack(self, guild_id: int, name: str, public: bool):
@@ -118,13 +115,13 @@ class PacksMixin(_PostgresConnection):
                 "guild_id": guild_id,
                 "pack_name": name,
                 "is_public": public,
-            }
+            },
         )
 
     async def get_pack_guild(self, guild_id: int) -> Optional[Pack]:
         await self.cur.execute(
             "SELECT * FROM packs WHERE guild_id=%(guild_id)s",
-            parameters={"guild_id": guild_id}
+            parameters={"guild_id": guild_id},
         )
         results = await self.cur.fetchall()
         if results:
@@ -134,8 +131,7 @@ class PacksMixin(_PostgresConnection):
 
     async def get_pack_name(self, name: str) -> Optional[Pack]:
         await self.cur.execute(
-            "SELECT * FROM packs WHERE pack_name=%(name)s",
-            parameters={"name": name}
+            "SELECT * FROM packs WHERE pack_name=%(name)s", parameters={"name": name}
         )
         results = await self.cur.fetchall()
         if results:
@@ -146,8 +142,7 @@ class PacksMixin(_PostgresConnection):
     @async_list
     async def get_public_packs(self) -> AsyncList:
         await self.cur.execute(
-            "SELECT * FROM packs WHERE is_public=true",
-            parameters={}
+            "SELECT * FROM packs WHERE is_public=true", parameters={}
         )
         results = await self.cur.fetchall()
         return [Pack(*i) for i in results]
@@ -155,11 +150,11 @@ class PacksMixin(_PostgresConnection):
     async def join_pack(self, *, user_id: int, guild_id: int):
         await self.cur.execute(
             "INSERT INTO user_packs VALUES (%(user_id)s, %(guild_id)s)",
-            parameters={"guild_id": guild_id, "user_id": user_id}
+            parameters={"guild_id": guild_id, "user_id": user_id},
         )
 
     async def leave_pack(self, *, user_id: int, guild_id: int):
         await self.cur.execute(
             "DELETE FROM user_packs WHERE guild_id=%(guild_id)s AND user_id=%(user_id)s",
-            parameters={"guild_id": guild_id, "user_id": user_id}
+            parameters={"guild_id": guild_id, "user_id": user_id},
         )

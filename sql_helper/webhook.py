@@ -2,9 +2,11 @@ from typing import Optional
 from collections import namedtuple
 
 
-class Webhook(namedtuple("Webhook", [
-    "webhook_id", "guild_id", "channel_id", "token", "name", "user_id"
-])):
+class Webhook(
+    namedtuple(
+        "Webhook", ["webhook_id", "guild_id", "channel_id", "token", "name", "user_id"]
+    )
+):
     index = "webhook"
 
     webhook_id: str

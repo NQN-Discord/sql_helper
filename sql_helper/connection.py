@@ -25,11 +25,11 @@ class PostgresConnection(
 
 class SQLConnection:
     def __init__(
-            self,
-            pool,
-            get_guild: Optional[Callable[[int], Optional[Guild]]] = None,
-            get_emoji: Optional[Callable[[SQLEmoji], Optional[Emoji]]] = None,
-            profiler=None
+        self,
+        pool,
+        get_guild: Optional[Callable[[int], Optional[Guild]]] = None,
+        get_emoji: Optional[Callable[[SQLEmoji], Optional[Emoji]]] = None,
+        profiler=None,
     ):
         self.pool = pool
         self._get_guild = get_guild or (lambda id: None)
@@ -37,4 +37,6 @@ class SQLConnection:
         self.profiler = profiler
 
     def __call__(self) -> PostgresConnection:
-        return PostgresConnection(self.pool, self._get_guild, self._get_emoji, self.profiler)
+        return PostgresConnection(
+            self.pool, self._get_guild, self._get_emoji, self.profiler
+        )

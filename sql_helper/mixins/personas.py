@@ -10,7 +10,7 @@ class PersonasMixin(_PostgresConnection):
     async def personas(self, user_id: int) -> AsyncList:
         await self.cur.execute(
             "SELECT user_id, short_name, display_name, avatar_url FROM personas WHERE user_id=%(user_id)s",
-            parameters={"user_id": user_id}
+            parameters={"user_id": user_id},
         )
         personas = await self.cur.fetchall()
         return [Persona(*i) for i in personas]
@@ -26,7 +26,7 @@ class PersonasMixin(_PostgresConnection):
     async def get_persona(self, user_id: int, name: str) -> Optional[Persona]:
         await self.cur.execute(
             "SELECT user_id, short_name, display_name, avatar_url FROM personas WHERE user_id=%(user_id)s and (short_name=%(name)s or display_name=%(name)s)",
-            parameters={"user_id": user_id, "name": name}
+            parameters={"user_id": user_id, "name": name},
         )
         personas = await self.cur.fetchall()
         if personas:
@@ -37,7 +37,7 @@ class PersonasMixin(_PostgresConnection):
     async def count_personas(self, user_id: int) -> int:
         await self.cur.execute(
             "select count(*) from personas where user_id=%(user_id)s",
-            parameters={"user_id": user_id}
+            parameters={"user_id": user_id},
         )
         results = await self.cur.fetchall()
         return results[0][0]
@@ -45,10 +45,9 @@ class PersonasMixin(_PostgresConnection):
     async def persona_exists(self, user_id: int, short_name: str) -> bool:
         await self.cur.execute(
             "SELECT 1 FROM personas WHERE user_id=%(user_id)s and short_name=%(name)s LIMIT 1",
-            parameters={"user_id": user_id, "name": short_name}
+            parameters={"user_id": user_id, "name": short_name},
         )
         return bool(await self.cur.fetchall())
-
 
     async def create_persona(self, persona: Persona):
         await self.cur.execute(
@@ -57,8 +56,8 @@ class PersonasMixin(_PostgresConnection):
                 "user_id": persona.user_id,
                 "short_name": persona.short_name,
                 "display_name": persona.display_name,
-                "avatar_url": persona.avatar_url
-            }
+                "avatar_url": persona.avatar_url,
+            },
         )
 
     async def set_persona(self, original_name: str, persona: Persona):
@@ -69,18 +68,18 @@ class PersonasMixin(_PostgresConnection):
                 "original_name": original_name,
                 "short_name": persona.short_name,
                 "display_name": persona.display_name,
-                "avatar_url": persona.avatar_url
-            }
+                "avatar_url": persona.avatar_url,
+            },
         )
 
     async def delete_persona(self, user_id: int, short_name: str):
         await self.cur.execute(
             "DELETE FROM personas WHERE user_id=%(user_id)s and short_name=%(short_name)s",
-            parameters={"user_id": user_id, "short_name": short_name}
+            parameters={"user_id": user_id, "short_name": short_name},
         )
 
     async def delete_all_personas(self, user_id: int):
         await self.cur.execute(
             "DELETE FROM personas WHERE user_id=%(user_id)s",
-            parameters={"user_id": user_id}
+            parameters={"user_id": user_id},
         )

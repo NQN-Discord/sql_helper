@@ -16,13 +16,13 @@ class SettingsFlags(Flag):
 
 
 DEFAULTS = (
-    SettingsFlags.stickers |
-    SettingsFlags.nitro |
-    SettingsFlags.replies |
-    SettingsFlags.pings |
-    SettingsFlags.user_content |
-    SettingsFlags.dashboard_posting |
-    SettingsFlags.phish_detection
+    SettingsFlags.stickers
+    | SettingsFlags.nitro
+    | SettingsFlags.replies
+    | SettingsFlags.pings
+    | SettingsFlags.user_content
+    | SettingsFlags.dashboard_posting
+    | SettingsFlags.phish_detection
 )
 
 

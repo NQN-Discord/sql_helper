@@ -4,7 +4,13 @@ from .emoji import SQLEmoji
 
 
 class _PostgresConnection:
-    def __init__(self, pool, get_guild: Callable[[int], Optional[Guild]], get_emoji: Callable[[SQLEmoji], Optional[Emoji]], profiler=None):
+    def __init__(
+        self,
+        pool,
+        get_guild: Callable[[int], Optional[Guild]],
+        get_emoji: Callable[[SQLEmoji], Optional[Emoji]],
+        profiler=None,
+    ):
         self.pool = pool
         self.pool_acq = None
         self.conn = None
@@ -31,4 +37,3 @@ class _PostgresConnection:
         self.cur_acq = None
         self.cur = None
         return rtn
-

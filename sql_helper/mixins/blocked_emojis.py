@@ -16,8 +16,7 @@ class Ordering(Enum):
 class BlockedEmojisMixin(_PostgresConnection):
     async def get_guilds_with_blocked_emojis(self) -> List[int]:
         await self.cur.execute(
-            "SELECT distinct guild_id FROM blocked_emotes",
-            parameters={}
+            "SELECT distinct guild_id FROM blocked_emotes", parameters={}
         )
         results = await self.cur.fetchall()
         return [guild_id for guild_id, in results]
@@ -30,7 +29,7 @@ select
        or
    exists(select emote_id from blocked_emotes where guild_id=%(guild_id)s and emote_hash in (select emote_hash from emote_ids where emote_id=any(%(emote_ids)s)))
             """,
-            parameters={"guild_id": guild_id, "emote_ids": emote_ids}
+            parameters={"guild_id": guild_id, "emote_ids": emote_ids},
         )
         results = await self.cur.fetchall()
         return results[0][0]
@@ -47,7 +46,7 @@ with guild_blocks as (
 union
 (select emote_id from emote_ids where emote_id = any(%(emote_ids)s) and emote_hash in (select emote_hash from guild_blocks))
             """,
-            parameters={"guild_id": guild_id, "emote_ids": emote_ids}
+            parameters={"guild_id": guild_id, "emote_ids": emote_ids},
         )
         results = await self.cur.fetchall()
         return [guild_id for guild_id, in results]
@@ -79,53 +78,59 @@ INSERT INTO blocked_emotes (guild_id, emote_id, name, animated, emote_hash) sele
                 "names": names,
                 "emote_ids": ids,
                 "animateds": animateds,
-            }
+            },
         )
 
     async def get_blocked_emotes(self, guild_id: int) -> List[PartialEmoji]:
         await self.cur.execute(
-            "SELECT animated, \"name\", emote_id FROM blocked_emotes where guild_id = %(guild_id)s",
-            parameters={"guild_id": guild_id}
+            'SELECT animated, "name", emote_id FROM blocked_emotes where guild_id = %(guild_id)s',
+            parameters={"guild_id": guild_id},
         )
         return await _get_emotes(self.cur)
 
-    async def get_blocked_emotes_search(self, guild_id: int, name: str, ordering: Ordering) -> Tuple[int, List[PartialEmoji]]:
+    async def get_blocked_emotes_search(
+        self, guild_id: int, name: str, ordering: Ordering
+    ) -> Tuple[int, List[PartialEmoji]]:
         await self.cur.execute(
             "SELECT count(*) FROM blocked_emotes where guild_id = %(guild_id)s",
-            parameters={"guild_id": guild_id}
+            parameters={"guild_id": guild_id},
         )
         count = await self.cur.fetchall()
         if ordering is Ordering.before:
             await self.cur.execute(
-                f"SELECT animated, \"name\", emote_id FROM blocked_emotes where guild_id = %(guild_id)s and \"name\" < %(name)s order by \"name\" desc limit 10",
-                parameters={"guild_id": guild_id, "name": name}
+                f'SELECT animated, "name", emote_id FROM blocked_emotes where guild_id = %(guild_id)s and "name" < %(name)s order by "name" desc limit 10',
+                parameters={"guild_id": guild_id, "name": name},
             )
         elif ordering is Ordering.equal:
             await self.cur.execute(
-                f"SELECT animated, \"name\", emote_id FROM blocked_emotes where guild_id = %(guild_id)s and \"name\" >= %(name)s order by \"name\" limit 10",
-                parameters={"guild_id": guild_id, "name": name}
+                f'SELECT animated, "name", emote_id FROM blocked_emotes where guild_id = %(guild_id)s and "name" >= %(name)s order by "name" limit 10',
+                parameters={"guild_id": guild_id, "name": name},
             )
         elif ordering is Ordering.after:
             await self.cur.execute(
-                f"SELECT animated, \"name\", emote_id FROM blocked_emotes where guild_id = %(guild_id)s and \"name\" > %(name)s order by \"name\" limit 10",
-                parameters={"guild_id": guild_id, "name": name}
+                f'SELECT animated, "name", emote_id FROM blocked_emotes where guild_id = %(guild_id)s and "name" > %(name)s order by "name" limit 10',
+                parameters={"guild_id": guild_id, "name": name},
             )
         emotes = await _get_emotes(self.cur)
         if name and ordering is Ordering.before:
             emotes.reverse()
         return count[0][0], emotes
 
-    async def get_blocked_emotes_with_prefix(self, guild_id: int, prefix: str) -> List[PartialEmoji]:
+    async def get_blocked_emotes_with_prefix(
+        self, guild_id: int, prefix: str
+    ) -> List[PartialEmoji]:
         await self.cur.execute(
-            f"SELECT animated, \"name\", emote_id FROM blocked_emotes where guild_id = %(guild_id)s and starts_with(lower(\"name\"), %(prefix)s) order by \"name\" limit 25",
-            parameters={"guild_id": guild_id, "prefix": prefix.lower()}
+            f'SELECT animated, "name", emote_id FROM blocked_emotes where guild_id = %(guild_id)s and starts_with(lower("name"), %(prefix)s) order by "name" limit 25',
+            parameters={"guild_id": guild_id, "prefix": prefix.lower()},
         )
         return await _get_emotes(self.cur)
 
-    async def get_blocked_emote_by_name(self, guild_id: int, name: str) -> Optional[PartialEmoji]:
+    async def get_blocked_emote_by_name(
+        self, guild_id: int, name: str
+    ) -> Optional[PartialEmoji]:
         await self.cur.execute(
-            "SELECT animated, \"name\", emote_id FROM blocked_emotes where guild_id = %(guild_id)s and \"name\" = %(name)s limit 1",
-            parameters={"guild_id": guild_id, "name": name}
+            'SELECT animated, "name", emote_id FROM blocked_emotes where guild_id = %(guild_id)s and "name" = %(name)s limit 1',
+            parameters={"guild_id": guild_id, "name": name},
         )
         emotes = await _get_emotes(self.cur)
         if emotes:
@@ -135,20 +140,21 @@ INSERT INTO blocked_emotes (guild_id, emote_id, name, animated, emote_hash) sele
         # Returns if the guild still has blocked emotes
         await self.cur.execute(
             "delete from blocked_emotes where guild_id=%(guild_id)s and emote_id=%(emote_id)s",
-            parameters={"guild_id": guild_id, "emote_id": emote_id}
+            parameters={"guild_id": guild_id, "emote_id": emote_id},
         )
         await self.cur.execute(
             "select exists(select emote_id from blocked_emotes where guild_id = %(guild_id)s)",
-            parameters={"guild_id": guild_id}
+            parameters={"guild_id": guild_id},
         )
         results = await self.cur.fetchall()
         return results[0][0]
 
-    async def share_hashes_with_blocked_emote(self, guild_id: int, emote_id: int, targets: List[int]) -> List[int]:
+    async def share_hashes_with_blocked_emote(
+        self, guild_id: int, emote_id: int, targets: List[int]
+    ) -> List[int]:
         await self.cur.execute(
             "select emote_id from emote_ids where emote_hash=(select emote_hash from blocked_emotes where guild_id=%(guild_id)s and emote_id=%(emote_id)s) and emote_id=ANY(%(targets)s)",
-            parameters={"guild_id": guild_id, "emote_id": emote_id, "targets": targets}
+            parameters={"guild_id": guild_id, "emote_id": emote_id, "targets": targets},
         )
         results = await self.cur.fetchall()
         return [emote_id for emote_id, in results]
-

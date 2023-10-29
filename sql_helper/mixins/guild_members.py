@@ -12,7 +12,7 @@ class GuildMembersMixin(_PostgresConnection):
             user_id = user_id.id
         await self.cur.execute(
             "SELECT guild_id FROM members WHERE user_id=%(user_id)s",
-            parameters={"user_id": user_id}
+            parameters={"user_id": user_id},
         )
         guilds = await self.cur.fetchall()
         return [g for g, in guilds]
@@ -29,7 +29,7 @@ class GuildMembersMixin(_PostgresConnection):
     async def in_guild(self, *, user_id: int, guild_id: int) -> bool:
         await self.cur.execute(
             "SELECT 1 FROM members WHERE user_id=%(user_id)s AND guild_id=%(guild_id)s LIMIT 1",
-            parameters={"user_id": user_id, "guild_id": guild_id}
+            parameters={"user_id": user_id, "guild_id": guild_id},
         )
         return bool(await self.cur.fetchall())
 
@@ -37,7 +37,7 @@ class GuildMembersMixin(_PostgresConnection):
         for i in range(10):
             await self.cur.execute(
                 "SELECT user_id FROM members WHERE guild_id=%(guild_id)s AND random() < (SELECT 2::decimal/count(*) FROM members WHERE guild_id=%(guild_id)s) LIMIT 1",
-                parameters={"guild_id": guild_id}
+                parameters={"guild_id": guild_id},
             )
             user_id = await self.cur.fetchall()
             if user_id:
@@ -48,15 +48,10 @@ class GuildMembersMixin(_PostgresConnection):
         async with self.cur.begin():
             await self.cur.execute(
                 "DELETE FROM members WHERE members.user_id = %(user_id)s",
-                parameters={
-                    "user_id": user_id
-                }
+                parameters={"user_id": user_id},
             )
             for guild_id in guild_ids:
                 await self.cur.execute(
                     "INSERT INTO members (guild_id, user_id) VALUES (%(guild_id)s, %(user_id)s)",
-                    parameters={
-                        "user_id": user_id,
-                        "guild_id": guild_id
-                    }
+                    parameters={"user_id": user_id, "guild_id": guild_id},
                 )

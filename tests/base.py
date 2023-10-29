@@ -19,7 +19,7 @@ sqlemoji_strategy = lambda emote_id=integers(), name=text(), emote_hash=text(): 
     emote_sha=text(),
     guild_id=integers(),
     name=name,
-    has_roles=booleans()
+    has_roles=booleans(),
 )
 
 
@@ -45,5 +45,16 @@ def postgres(get_guild, get_emoji) -> PostgresConnection:
     return postgres
 
 
-def get_sql_emoji(emote_id: int, emote_hash: str = "abc", usable: bool = True, animated: bool = False, emote_sha: str = "cde", guild_id: Optional[int] = 123, name: str = "foo", has_roles: bool= False) -> SQLEmoji:
-    return SQLEmoji(emote_id, emote_hash, usable, animated, emote_sha, guild_id, name, has_roles)
+def get_sql_emoji(
+    emote_id: int,
+    emote_hash: str = "abc",
+    usable: bool = True,
+    animated: bool = False,
+    emote_sha: str = "cde",
+    guild_id: Optional[int] = 123,
+    name: str = "foo",
+    has_roles: bool = False,
+) -> SQLEmoji:
+    return SQLEmoji(
+        emote_id, emote_hash, usable, animated, emote_sha, guild_id, name, has_roles
+    )

@@ -23,29 +23,33 @@ class EmojisUsedMixin(_PostgresConnection):
 
         await self.cur.execute(
             f"INSERT INTO emotes_used (time, guild_id, name, emote_id, animated) VALUES (unnest(%(times)s), unnest(%(guild_ids)s), unnest(%(names)s), unnest(%(ids)s), unnest(%(animateds)s))",
-            parameters=params
+            parameters=params,
         )
 
-    async def get_recently_used_emote(self, guild_id: int, name: str) -> Optional[PartialEmoji]:
+    async def get_recently_used_emote(
+        self, guild_id: int, name: str
+    ) -> Optional[PartialEmoji]:
         await self.cur.execute(
-            "SELECT first(animated, time), first(name, time), emote_id FROM emotes_used WHERE guild_id=%(guild_id)s and lower(\"name\")=%(name)s group by emote_id",
-            parameters={"guild_id": guild_id, "name": name.lower()}
+            'SELECT first(animated, time), first(name, time), emote_id FROM emotes_used WHERE guild_id=%(guild_id)s and lower("name")=%(name)s group by emote_id',
+            parameters={"guild_id": guild_id, "name": name.lower()},
         )
         emotes = await _get_emotes(self.cur)
         if emotes:
             return next((emote for emote in emotes if emote.name == name), emotes[0])
 
-    async def get_recently_used_emotes(self, guild_id: int, prefix: str, limit: int = 25) -> List[PartialEmoji]:
+    async def get_recently_used_emotes(
+        self, guild_id: int, prefix: str, limit: int = 25
+    ) -> List[PartialEmoji]:
         if not prefix:
             await self.cur.execute(
                 "select first(animated, time), first(name, time), emote_id from emotes_used where guild_id=%(guild_id)s group by emote_id limit %(limit)s",
-                parameters={"guild_id": guild_id, "limit": limit}
+                parameters={"guild_id": guild_id, "limit": limit},
             )
         else:
             # This one doesn't use an index for the whole thing. Should be OK though
             await self.cur.execute(
-                "select first(animated, time), first(name, time), emote_id from emotes_used where guild_id=%(guild_id)s and starts_with(lower(\"name\"), %(prefix)s) group by emote_id limit %(limit)s",
-                parameters={"guild_id": guild_id, "prefix": prefix, "limit": limit}
+                'select first(animated, time), first(name, time), emote_id from emotes_used where guild_id=%(guild_id)s and starts_with(lower("name"), %(prefix)s) group by emote_id limit %(limit)s',
+                parameters={"guild_id": guild_id, "prefix": prefix, "limit": limit},
             )
         return await _get_emotes(self.cur)
 

@@ -5,10 +5,7 @@ from sentry_sdk import add_breadcrumb
 
 def sql_wrapper(namespace: str):
     sql_request = Histogram(
-        "sql_request_total",
-        "SQL Requests",
-        ["query"],
-        namespace=namespace
+        "sql_request_total", "SQL Requests", ["query"], namespace=namespace
     )
 
     def middle(execute):
@@ -26,9 +23,10 @@ def sql_wrapper(namespace: str):
                     data={
                         "query": query,
                         "params": kwargs.get("parameters"),
-                        "total_time": total_time
-                    }
+                        "total_time": total_time,
+                    },
                 )
 
         return execute_wrapper
+
     return middle

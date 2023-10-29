@@ -11,7 +11,7 @@ class GuildWebhooksMixin(_PostgresConnection):
     async def get_channel_webhooks(self, channel_id: int) -> AsyncList:
         await self.cur.execute(
             "SELECT * FROM webhooks WHERE channel_id=%(channel_id)s",
-            parameters={"channel_id": channel_id}
+            parameters={"channel_id": channel_id},
         )
         results = await self.cur.fetchall()
         return [Webhook(*i) for i in results]
@@ -19,18 +19,20 @@ class GuildWebhooksMixin(_PostgresConnection):
     async def get_webhook_by_id(self, webhook_id: int) -> Optional[DiscordWebhook]:
         await self.cur.execute(
             "SELECT * FROM webhooks WHERE webhook_id=%(webhook_id)s",
-            parameters={"webhook_id": webhook_id}
+            parameters={"webhook_id": webhook_id},
         )
         results = await self.cur.fetchall()
         if results:
             return Webhook(*results[0])
 
-    async def set_channel_webhooks(self, channel_id: int, webhooks: List[DiscordWebhook], *, delete: bool = True):
+    async def set_channel_webhooks(
+        self, channel_id: int, webhooks: List[DiscordWebhook], *, delete: bool = True
+    ):
         async with self.cur.begin():
             if delete:
                 await self.cur.execute(
                     "DELETE FROM webhooks WHERE channel_id=%(channel_id)s",
-                    parameters={"channel_id": channel_id}
+                    parameters={"channel_id": channel_id},
                 )
             for webhook in webhooks:
                 try:
@@ -46,6 +48,6 @@ class GuildWebhooksMixin(_PostgresConnection):
                         "channel_id": webhook.channel_id,
                         "user_id": user_id,
                         "token": webhook.token,
-                        "name": webhook.name
-                    }
+                        "name": webhook.name,
+                    },
                 )
