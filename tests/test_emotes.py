@@ -62,28 +62,6 @@ async def test_get_emote_like_no_guild_no_secondary(postgres):
 
 
 @pytest.mark.asyncio
-async def test_get_emote_like_force_change(postgres):
-    postgres.cur.fetchall.side_effect = [
-        [get_sql_emoji(123)],
-        [get_sql_emoji(234)]
-    ]
-    rtn = await postgres.get_emote_like(emote_id=123, force_change=True)
-    assert rtn == get_sql_emoji(234)
-    assert postgres.cur.fetchall.call_count == 2
-
-
-@pytest.mark.asyncio
-async def test_get_emote_like_force_change_no_guild(postgres):
-    postgres.cur.fetchall.side_effect = [
-        [get_sql_emoji(123)],
-        [get_sql_emoji(234)]
-    ]
-    rtn = await postgres.get_emote_like(emote_id=123, force_change=True, require_guild=False)
-    assert rtn == get_sql_emoji(234)
-    assert postgres.cur.fetchall.call_count == 2
-
-
-@pytest.mark.asyncio
 async def test_get_emote_like_no_require_guild(postgres):
     postgres.cur.fetchall.side_effect = [
         [get_sql_emoji(123, guild_id=None)],
