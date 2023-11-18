@@ -104,11 +104,15 @@ class EmojisMixin(_PostgresConnection):
             if emote.guild_id:
                 return self._get_emoji(emote)
             elif require_guild:
-                return self._get_emoji(await self._get_emote_like(emote, require_guild))
+                return self._sql_emoji_to_emoji(
+                    await self._get_emote_like(emote, require_guild)
+                )
             else:
                 return self._get_emoji(emote)
         else:
-            return self._get_emoji(await self._get_emote_like(emote, require_guild))
+            return self._sql_emoji_to_emoji(
+                await self._get_emote_like(emote, require_guild)
+            )
 
     async def _get_emote_like(
         self, emote: SQLEmoji, require_guild: bool
