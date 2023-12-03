@@ -53,6 +53,7 @@ class GuildMessagesMixin(_PostgresConnection):
         guild_id: Optional[int] = None,
         channel_id: Optional[int] = None,
         user_id: Optional[int] = None,
+        after: Optional[int] = None,
         offset: Optional[int] = None,
         no_results: int,
     ) -> List[GuildMessage]:
@@ -63,6 +64,7 @@ class GuildMessagesMixin(_PostgresConnection):
             guild_id,
             channel_id,
             user_id,
+            after,
             offset,
             no_results,
         )
@@ -88,7 +90,7 @@ class GuildMessagesMixin(_PostgresConnection):
         user_id: Optional[int] = None,
     ) -> int:
         await self._get_guild_message(
-            "count(*)", "", message_id, guild_id, channel_id, user_id, 0, 1
+            "count(*)", "", message_id, guild_id, channel_id, user_id, None, 0, 1
         )
         results = await self.cur.fetchall()
         return results[0][0]
@@ -118,62 +120,65 @@ class GuildMessagesMixin(_PostgresConnection):
         guild_id: Optional[int] = None,
         channel_id: Optional[int] = None,
         user_id: Optional[int] = None,
+        after_id: Optional[int] = None,
         offset: Optional[int] = None,
-        no_results: int = 1,
+        no_results: Optional[int] = 1,
     ):
+        params = {
+            "message_id": message_id,
+            "guild_id": guild_id,
+            "channel_id": channel_id,
+            "user_id": user_id,
+            "after_id": after_id,
+            "offset": offset,
+            "limit": no_results,
+        }
         if message_id is not None:
             await self.cur.execute(
-                f"SELECT {select} FROM guild_messages WHERE message_id=%(message_id)s LIMIT %(limit)s OFFSET %(offset)s",
-                parameters={
-                    "message_id": message_id,
-                    "limit": no_results,
-                    "offset": offset,
-                },
+                f"SELECT {select} FROM guild_messages WHERE message_id=%(message_id)s {_get_after_clause(after_id)} {_get_limit_clause(no_results, offset)}",
+                parameters=params,
             )
-        elif channel_id and user_id:
+        elif channel_id is not None and user_id is not None:
             await self.cur.execute(
-                f"SELECT {select} FROM guild_messages WHERE channel_id=%(channel_id)s AND user_id=%(user_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
-                parameters={
-                    "channel_id": channel_id,
-                    "user_id": user_id,
-                    "limit": no_results,
-                    "offset": offset,
-                },
+                f"SELECT {select} FROM guild_messages WHERE channel_id=%(channel_id)s AND user_id=%(user_id)s {_get_after_clause(after_id)} {order} {_get_limit_clause(no_results, offset)}",
+                parameters=params,
             )
-        elif channel_id:
+        elif channel_id is not None:
             await self.cur.execute(
-                f"SELECT {select} FROM guild_messages WHERE channel_id=%(channel_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
-                parameters={
-                    "channel_id": channel_id,
-                    "limit": no_results,
-                    "offset": offset,
-                },
+                f"SELECT {select} FROM guild_messages WHERE channel_id=%(channel_id)s {_get_after_clause(after_id)} {order} {_get_limit_clause(no_results, offset)}",
+                parameters=params,
             )
-        elif guild_id and user_id:
+        elif guild_id is not None and user_id is not None:
             await self.cur.execute(
-                f"SELECT {select} FROM guild_messages WHERE guild_id=%(guild_id)s AND user_id=%(user_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
-                parameters={
-                    "guild_id": guild_id,
-                    "user_id": user_id,
-                    "limit": no_results,
-                    "offset": offset,
-                },
+                f"SELECT {select} FROM guild_messages WHERE guild_id=%(guild_id)s AND user_id=%(user_id)s {_get_after_clause(after_id)} {order} {_get_limit_clause(no_results, offset)}",
+                parameters=params,
             )
-        elif guild_id:
+        elif guild_id is not None:
             await self.cur.execute(
-                f"SELECT {select} FROM guild_messages WHERE guild_id=%(guild_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
-                parameters={
-                    "guild_id": guild_id,
-                    "limit": no_results,
-                    "offset": offset,
-                },
+                f"SELECT {select} FROM guild_messages WHERE guild_id=%(guild_id)s {_get_after_clause(after_id)} {order} {_get_limit_clause(no_results, offset)}",
+                parameters=params,
             )
-        elif user_id:
+        elif user_id is not None:
             await self.cur.execute(
-                f"SELECT {select} FROM guild_messages WHERE user_id=%(user_id)s {order} LIMIT %(limit)s OFFSET %(offset)s",
-                parameters={"user_id": user_id, "limit": no_results, "offset": offset},
+                f"SELECT {select} FROM guild_messages WHERE user_id=%(user_id)s {_get_after_clause(after_id)} {order} {_get_limit_clause(no_results, offset)}",
+                parameters=params,
             )
         else:
             raise NotImplementedError(
                 f"Invalid combination of requests: message_id={message_id} guild_id={guild_id} channel_id={channel_id} user_id={user_id}"
             )
+
+
+def _get_limit_clause(limit: Optional[int], offset: Optional[int]) -> str:
+    rtn = []
+    if limit is not None:
+        rtn.append("LIMIT %(limit)s")
+    if offset is not None:
+        rtn.append("OFFSET %(offset)s")
+    return " ".join(rtn)
+
+
+def _get_after_clause(after: Optional[int]) -> str:
+    if after is None:
+        return ""
+    return "AND message_id > %(after_id)s"
