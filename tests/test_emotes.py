@@ -212,10 +212,9 @@ async def test_get_emote_like(
     postgres.cur.execute.side_effect = _execute_side_effect
     postgres.cur.fetchall.side_effect = _fetchall_side_effect
 
+    assume(not any(emote.emote_id == to_find.emote_id for emote in emote_pool))
     if add_to_pool:
         emote_pool.append(to_find)
-    else:
-        assume(not any(emote.emote_id == to_find.emote_id for emote in emote_pool))
 
     rtn: Optional[SQLEmoji] = await postgres.get_emote_like(to_find.emote_id)
     if not add_to_pool:
