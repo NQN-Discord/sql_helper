@@ -55,7 +55,7 @@ class GuildMessagesMixin(_PostgresConnection):
         user_id: Optional[int] = None,
         after: Optional[int] = None,
         offset: Optional[int] = None,
-        no_results: int,
+        no_results: Optional[int],
     ) -> List[GuildMessage]:
         await self._get_guild_message(
             "guild_id, channel_id, message_id, user_id",
