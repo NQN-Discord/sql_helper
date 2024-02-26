@@ -20,6 +20,14 @@ class EmojiHashesMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         return set(hash for hash, in results)
 
+    async def get_emote_ids_globally_filtered(self, emote_ids: List[int]) -> Set[int]:
+        await self.cur.execute(
+            "select emote_id from emote_ids where emote_id=ANY(%(emote_ids)s) and emote_hash in (select emote_hash from emote_hashes where filtered=true)",
+            parameters={"emote_ids": emote_ids},
+        )
+        results = await self.cur.fetchall()
+        return set(emote_id for emote_id, in results)
+
     async def mark_emote_hash_filtered(self, emote_hash: str):
         await self.cur.execute(
             "INSERT INTO emote_hashes (emote_hash, filtered) VALUES (%(emote_hash)s, true)",
