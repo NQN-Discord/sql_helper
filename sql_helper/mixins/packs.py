@@ -45,7 +45,7 @@ class PacksMixin(_PostgresConnection):
             parameters={"emote_id": emote_id},
         )
         packs = await self.cur.fetchall()
-        return [guild_id for guild_id, in packs]
+        return [pack_name for pack_name, in packs]
 
     async def user_pack_count(self, user_id: Union[Object, int]) -> int:
         if not isinstance(user_id, int):
