@@ -13,6 +13,7 @@ def sql_wrapper(namespace: str):
             with start_span(
                 op="postgres",
                 name=query,
+                only_as_child_span=True,
             ):
                 start_time = time.perf_counter()
                 try:
