@@ -4,7 +4,6 @@ from dateutil.relativedelta import relativedelta
 
 from .premium_last_charge_status import PremiumLastChargeStatus
 
-
 ALLOWED_LAST_CHARGE_STATUSES = (
     PremiumLastChargeStatus.PAID,
     PremiumLastChargeStatus.PENDING,

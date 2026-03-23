@@ -1,6 +1,5 @@
 from collections import namedtuple
 
-
 SQLEmoji = namedtuple(
     "SQLEmoji",
     [
