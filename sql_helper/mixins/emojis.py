@@ -381,7 +381,7 @@ class EmojisMixin(_PostgresConnection):
 
     async def get_mega_emotes(self, guild_id: int, emote_name: str) -> List[Emoji]:
         await self.cur.execute(
-            "select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where guild_id=%(guild_id)s and trim(name) ~ ('^' || %(emote_name)s || '_\d_\d$') and usable=true and has_roles=false and manual_block=false",
+            r"select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where guild_id=%(guild_id)s and trim(name) ~ ('^' || %(emote_name)s || '_\d_\d$') and usable=true and has_roles=false and manual_block=false",
             parameters={"guild_id": guild_id, "emote_name": emote_name},
         )
         results = await self.cur.fetchall()

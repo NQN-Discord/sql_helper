@@ -45,3 +45,5 @@ class GuildSettings:
     enable_personas: bool = False
     enable_dashboard_posting: bool = True
     enable_phish_detection: bool = True
+    enable_emoji_search: bool = True
+    enable_sticker_search: bool = True

@@ -29,7 +29,7 @@ class GuildSettingsMixin(_PostgresConnection):
     @async_list
     async def guild_settings(self) -> AsyncList:
         await self.cur.execute(
-            "SELECT guild_id, prefix, locale, max_guildwide_emotes, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, is_alias_server, enable_pings, enable_user_content, enable_personas, enable_dashboard_posting, enable_phish_detection FROM guild_settings"
+            "SELECT guild_id, prefix, locale, max_guildwide_emotes, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, is_alias_server, enable_pings, enable_user_content, enable_personas, enable_dashboard_posting, enable_phish_detection, enable_emoji_search, enable_sticker_search FROM guild_settings"
         )
         results = await self.cur.fetchall()
         return [GuildSettings(*i) for i in results]
@@ -38,7 +38,7 @@ class GuildSettingsMixin(_PostgresConnection):
         self, guild_id: Union[Guild, int]
     ) -> Optional[GuildSettings]:
         await self.cur.execute(
-            "SELECT guild_id, prefix, locale, max_guildwide_emotes, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, is_alias_server, enable_pings, enable_user_content, enable_personas, enable_dashboard_posting, enable_phish_detection FROM guild_settings WHERE guild_id=%(guild_id)s",
+            "SELECT guild_id, prefix, locale, max_guildwide_emotes, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, is_alias_server, enable_pings, enable_user_content, enable_personas, enable_dashboard_posting, enable_phish_detection, enable_emoji_search, enable_sticker_search FROM guild_settings WHERE guild_id=%(guild_id)s",
             parameters={"guild_id": guild_id},
         )
         results = await self.cur.fetchall()
@@ -62,10 +62,10 @@ class GuildSettingsMixin(_PostgresConnection):
 
     async def set_guild_settings(self, guild_settings: GuildSettings):
         await self.cur.execute(
-            "INSERT INTO guild_settings (guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, is_alias_server, locale, enable_pings, max_guildwide_emotes, enable_user_content, enable_personas, enable_dashboard_posting, enable_phish_detection)  VALUES "
-            "(%(guild_id)s, %(prefix)s, %(nitro_role)s, %(boost_channel)s, %(boost_role)s, %(audit_channel)s, %(enable_stickers)s, %(enable_nitro)s, %(enable_replies)s,  %(is_alias_server)s, %(locale)s, %(enable_pings)s, %(max_guildwide_emotes)s, %(enable_user_content)s, %(enable_personas)s, %(enable_dashboard_posting)s, %(enable_phish_detection)s)"
-            'ON CONFLICT (guild_id) DO UPDATE SET (prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, is_alias_server, "locale", enable_pings, max_guildwide_emotes, enable_user_content, enable_personas, enable_dashboard_posting, enable_phish_detection) = '
-            "(EXCLUDED.prefix, EXCLUDED.nitro_role, EXCLUDED.boost_channel, EXCLUDED.boost_role, EXCLUDED.audit_channel, EXCLUDED.enable_stickers, EXCLUDED.enable_nitro, EXCLUDED.enable_replies, EXCLUDED.is_alias_server, EXCLUDED.locale, EXCLUDED.enable_pings, EXCLUDED.max_guildwide_emotes, EXCLUDED.enable_user_content, EXCLUDED.enable_personas, EXCLUDED.enable_dashboard_posting, EXCLUDED.enable_phish_detection)",
+            "INSERT INTO guild_settings (guild_id, prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, is_alias_server, locale, enable_pings, max_guildwide_emotes, enable_user_content, enable_personas, enable_dashboard_posting, enable_phish_detection, enable_emoji_search, enable_sticker_search)  VALUES "
+            "(%(guild_id)s, %(prefix)s, %(nitro_role)s, %(boost_channel)s, %(boost_role)s, %(audit_channel)s, %(enable_stickers)s, %(enable_nitro)s, %(enable_replies)s,  %(is_alias_server)s, %(locale)s, %(enable_pings)s, %(max_guildwide_emotes)s, %(enable_user_content)s, %(enable_personas)s, %(enable_dashboard_posting)s, %(enable_phish_detection)s, %(enable_emoji_search)s, %(enable_sticker_search)s)"
+            'ON CONFLICT (guild_id) DO UPDATE SET (prefix, nitro_role, boost_channel, boost_role, audit_channel, enable_stickers, enable_nitro, enable_replies, is_alias_server, "locale", enable_pings, max_guildwide_emotes, enable_user_content, enable_personas, enable_dashboard_posting, enable_phish_detection, enable_emoji_search, enable_sticker_search) = '
+            "(EXCLUDED.prefix, EXCLUDED.nitro_role, EXCLUDED.boost_channel, EXCLUDED.boost_role, EXCLUDED.audit_channel, EXCLUDED.enable_stickers, EXCLUDED.enable_nitro, EXCLUDED.enable_replies, EXCLUDED.is_alias_server, EXCLUDED.locale, EXCLUDED.enable_pings, EXCLUDED.max_guildwide_emotes, EXCLUDED.enable_user_content, EXCLUDED.enable_personas, EXCLUDED.enable_dashboard_posting, EXCLUDED.enable_phish_detection, EXCLUDED.enable_emoji_search, EXCLUDED.enable_sticker_search)",
             parameters={
                 field.name: getattr(guild_settings, field.name)
                 for field in fields(guild_settings)
