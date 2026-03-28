@@ -387,9 +387,9 @@ class EmojisMixin(_PostgresConnection):
         results = await self.cur.fetchall()
         return [self._get_emoji(SQLEmoji(*emote)) for emote in results]
 
-    async def get_raw_emotes_for_hash(self, emote_hash: str) -> List[SQLEmoji]:
+    async def get_raw_indexable_emotes_for_hash(self, emote_hash: str) -> List[SQLEmoji]:
         await self.cur.execute(
-            "select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where emote_hash=%(emote_hash)s",
+            "select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where emote_hash=%(emote_hash)s and guild_id is not null and COALESCE((select enable_emoji_search from guild_settings where guild_id=emote_ids.guild_id), true)",
             parameters={"emote_hash": emote_hash},
         )
         results = await self.cur.fetchall()
