@@ -1,4 +1,5 @@
 from collections import namedtuple
+from typing import TypedDict
 
 SQLEmoji = namedtuple(
     "SQLEmoji",
@@ -14,3 +15,10 @@ SQLEmoji = namedtuple(
     ],
 )
 EmojiCounts = namedtuple("EmojiCounts", ["static", "animated"])
+
+
+class EmotePerceptualHashData(TypedDict):
+    id: int
+    animated: bool
+    sha: str
+    perceptual: str

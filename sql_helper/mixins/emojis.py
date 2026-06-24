@@ -1,7 +1,7 @@
 from typing import Dict, Optional, List, Set, Tuple
 from collections import Counter
 from discord import Emoji
-from ..emoji import SQLEmoji, EmojiCounts
+from ..emoji import SQLEmoji, EmojiCounts, EmotePerceptualHashData
 
 from .._connection import _PostgresConnection
 
@@ -396,6 +396,29 @@ class EmojisMixin(_PostgresConnection):
         )
         results = await self.cur.fetchall()
         return [SQLEmoji(*emote) for emote in results]
+
+    async def get_all_emotes_min(self, min_id: int, limit: int) -> List[SQLEmoji]:
+        await self.cur.execute(
+            "select emote_id, emote_hash, usable, animated, emote_sha, guild_id, trim(name), has_roles from emote_ids where emote_id>%(min_id)s order by emote_id LIMIT %(limit)s",
+            parameters={"min_id": min_id, "limit": limit},
+        )
+        results = await self.cur.fetchall()
+        return [SQLEmoji(*emote) for emote in results]
+
+    async def bulk_update_emote_perceptual_hash_data(
+        self, emotes: List[EmotePerceptualHashData]
+    ):
+        ids = []
+        hashes = []
+        shas = []
+        for emote in emotes:
+            ids.append(emote["id"])
+            hashes.append(emote["perceptual"])
+            shas.append(emote["sha"])
+        await self.cur.execute(
+            "update emote_ids set emote_sha=t.sha, emote_hash=t.perceptual from (SELECT * from unnest(%(ids)s) as id, unnest(%(shas)s) as sha, unnest(%(hashes)s) as perceptual) t where emote_ids.emote_id = t.id",
+            parameters={"ids": ids, "shas": shas, "hashes": hashes},
+        )
 
     async def _get_emojis(
         self, query_where, query_suffix: str = "", *, parameters
