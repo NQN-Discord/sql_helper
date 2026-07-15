@@ -408,6 +408,8 @@ class EmojisMixin(_PostgresConnection):
     async def bulk_update_emote_perceptual_hash_data(
         self, emotes: List[EmotePerceptualHashData]
     ):
+        if not emotes:
+            return
         ids = []
         hashes = []
         shas = []
@@ -416,7 +418,7 @@ class EmojisMixin(_PostgresConnection):
             hashes.append(emote["perceptual"])
             shas.append(emote["sha"])
         await self.cur.execute(
-            "update emote_ids set emote_sha=t.sha, emote_hash=t.perceptual from (SELECT * from unnest(%(ids)s) as id, unnest(%(shas)s) as sha, unnest(%(hashes)s) as perceptual) t where emote_ids.emote_id = t.id",
+            "update emote_ids set emote_sha=t.sha, emote_hash=t.perceptual from (SELECT * from unnest(%(ids)s, %(shas)s, %(hashes)s) as t(id, sha, perceptual)) t where emote_ids.emote_id = t.id",
             parameters={"ids": ids, "shas": shas, "hashes": hashes},
         )
 
