@@ -39,7 +39,11 @@ class SQLConnection:
         self._get_emoji = get_emoji or (lambda emoji: None)
         self.profiler = profiler
 
-    def __call__(self, *, isolation_level: Optional[IsolationLevel] = None) -> PostgresConnection:
+    def __call__(
+        self,
+        *,
+        isolation_level: Optional[IsolationLevel] = None,
+    ) -> PostgresConnection:
         return PostgresConnection(
             self.pool,
             self._get_guild,
