@@ -1,4 +1,6 @@
 from typing import Optional, Callable
+
+from aiopg import IsolationLevel
 from discord import Guild, Emoji
 from .emoji import SQLEmoji
 
@@ -10,6 +12,8 @@ class _PostgresConnection:
         get_guild: Callable[[int], Optional[Guild]],
         get_emoji: Callable[[SQLEmoji], Optional[Emoji]],
         profiler=None,
+        *,
+        isolation_level: Optional[IsolationLevel] = None,
     ):
         self.pool = pool
         self.pool_acq = None
@@ -19,11 +23,12 @@ class _PostgresConnection:
         self._get_guild = get_guild
         self._get_emoji = get_emoji
         self.profiler = profiler
+        self.isolation_level = isolation_level
 
     async def __aenter__(self) -> "_PostgresConnection":
         self.pool_acq = self.pool.acquire()
         self.conn = await self.pool_acq.__aenter__()
-        self.cur_acq = self.conn.cursor()
+        self.cur_acq = self.conn.cursor(isolation_level=self.isolation_level)
         self.cur = await self.cur_acq.__aenter__()
         if self.profiler is not None:
             self.cur.execute = self.profiler(self.cur.execute)
